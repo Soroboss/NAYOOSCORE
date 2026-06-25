@@ -12,10 +12,26 @@ const poppins = Poppins({
 
 export const metadata: Metadata = {
   title: {
-    default: APP_NAME,
+    default: `${APP_NAME} — Score de finançabilité PME`,
     template: `%s | ${APP_NAME}`,
   },
-  description: APP_DESCRIPTION,
+  description:
+    "Nayooscore : la plateforme africaine de score de finançabilité pour PME et institutions. Diagnostic, suivi financier, scoring sur 100 points et demandes de financement.",
+  keywords: [
+    "PME",
+    "finançabilité",
+    "score",
+    "Afrique",
+    "Côte d'Ivoire",
+    "financement",
+    "institution",
+  ],
+  openGraph: {
+    title: `${APP_NAME} — Le score qui inspire confiance`,
+    description: APP_DESCRIPTION,
+    type: "website",
+    locale: "fr_FR",
+  },
 };
 
 export default function RootLayout({

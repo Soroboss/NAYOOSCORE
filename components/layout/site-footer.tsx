@@ -45,8 +45,14 @@ export function SiteFooter() {
               Connexion
             </Link>
             <Link href="/register" className="hover:text-[#00BFA6]">
-              Inscription
+              Inscription PME
             </Link>
+            <a href="#fonctionnalites" className="hover:text-[#00BFA6]">
+              Fonctionnalités
+            </a>
+            <a href="#faq" className="hover:text-[#00BFA6]">
+              FAQ
+            </a>
           </div>
         </div>
       </div>

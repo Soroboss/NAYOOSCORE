@@ -93,3 +93,10 @@ export function canAccessInstitution(role: UserRole): boolean {
 export function canAccessPme(role: UserRole): boolean {
   return role === "PME_OWNER" || role === "PME_STAFF" || role === "VIEWER";
 }
+
+export function canManageInstitutionPrograms(
+  role: UserRole,
+  memberRole: string
+): boolean {
+  return role === "SUPER_ADMIN" || memberRole === "INSTITUTION_ADMIN";
+}

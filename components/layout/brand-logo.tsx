@@ -11,9 +11,9 @@ type BrandLogoProps = {
 };
 
 const sizes = {
-  sm: { width: 120, height: 48 },
-  md: { width: 180, height: 72 },
-  lg: { width: 240, height: 96 },
+  sm: { width: 120, height: 80 },
+  md: { width: 180, height: 120 },
+  lg: { width: 260, height: 173 },
 };
 
 export function BrandLogo({
@@ -34,13 +34,8 @@ export function BrandLogo({
         className="h-auto w-auto object-contain"
         priority
       />
-      {showTagline && (
-        <p
-          className={cn(
-            "text-center text-xs font-medium uppercase tracking-[0.2em]",
-            variant === "light" ? "text-white/80" : "text-muted-foreground"
-          )}
-        >
+      {showTagline && variant === "dark" && (
+        <p className="text-center text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
           {APP_TAGLINE}
         </p>
       )}
