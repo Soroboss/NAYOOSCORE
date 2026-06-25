@@ -1,16 +1,24 @@
-import { canAccessAdmin } from "@/lib/permissions";
+import { Shield } from "lucide-react";
 import { requireAuth } from "@/app/actions/auth";
+import { DashboardShell } from "@/components/layout/dashboard-shell";
+import { adminNavGroups } from "@/lib/nav-config";
+import { canAccessAdmin } from "@/lib/permissions";
 
 export default async function AdminSaasLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  await requireAuth(canAccessAdmin);
+  const user = await requireAuth(canAccessAdmin);
 
   return (
-    <div className="flex min-h-full flex-1 bg-[#F5F7FA]">
-      <main className="flex flex-1 flex-col">{children}</main>
-    </div>
+    <DashboardShell
+      user={user}
+      navGroups={adminNavGroups}
+      spaceLabel="Admin SaaS"
+      spaceIcon={<Shield className="size-4 text-[#00BFA6]" />}
+    >
+      {children}
+    </DashboardShell>
   );
 }

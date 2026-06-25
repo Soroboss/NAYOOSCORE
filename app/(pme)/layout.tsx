@@ -1,4 +1,7 @@
+import { Briefcase } from "lucide-react";
 import { requireAuth } from "@/app/actions/auth";
+import { DashboardShell } from "@/components/layout/dashboard-shell";
+import { pmeNavGroups } from "@/lib/nav-config";
 import { canAccessPme } from "@/lib/permissions";
 
 export default async function PmeLayout({
@@ -6,11 +9,16 @@ export default async function PmeLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requireAuth(canAccessPme);
+  const user = await requireAuth(canAccessPme);
 
   return (
-    <div className="flex min-h-full flex-1 bg-[#F5F7FA]">
-      <main className="flex flex-1 flex-col">{children}</main>
-    </div>
+    <DashboardShell
+      user={user}
+      navGroups={pmeNavGroups}
+      spaceLabel="Espace PME"
+      spaceIcon={<Briefcase className="size-4 text-[#00BFA6]" />}
+    >
+      {children}
+    </DashboardShell>
   );
 }

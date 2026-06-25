@@ -19,19 +19,26 @@ export function PagePlaceholder({
   badge = "Bientôt disponible",
 }: PagePlaceholderProps) {
   return (
-    <div className="flex flex-1 flex-col gap-6 p-6">
-      <div className="flex items-center gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-        <Badge variant="secondary">{badge}</Badge>
+    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="text-2xl font-semibold tracking-tight text-[#0B1D2A]">
+          {title}
+        </h1>
+        <Badge
+          variant="secondary"
+          className="bg-[#00BFA6]/10 text-[#00BFA6] hover:bg-[#00BFA6]/10"
+        >
+          {badge}
+        </Badge>
       </div>
-      <Card className="max-w-2xl">
+      <Card className="max-w-2xl border-[#0B1D2A]/10 shadow-sm">
         <CardHeader>
-          <CardTitle>{title}</CardTitle>
+          <CardTitle className="text-[#0B1D2A]">{title}</CardTitle>
           <CardDescription>{description}</CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Cette page sera implémentée dans les prochaines étapes du MVP
+            Ce module sera implémenté dans les prochaines étapes du MVP
             Nayooscore.
           </p>
         </CardContent>
