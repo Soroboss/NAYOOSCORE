@@ -15,9 +15,9 @@ export default async function LoginPage() {
 
   return (
     <div className="space-y-2">
-      <div className="mb-6 text-center">
-        <h1 className="text-2xl font-semibold text-white">Connexion</h1>
-        <p className="text-sm text-white/60">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-[#0B1D2A]">Connexion</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           Accédez à votre espace Nayooscore
         </p>
       </div>

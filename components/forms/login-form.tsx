@@ -69,28 +69,32 @@ export function LoginForm() {
 
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-white/10" />
+          <span className="w-full border-t border-[#0B1D2A]/10" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-[#0B1D2A] px-2 text-white/50">ou</span>
+          <span className="bg-white px-2 text-muted-foreground">ou</span>
         </div>
       </div>
 
       <div className="grid gap-2">
         <form action={signInWithGoogleAction}>
-          <Button type="submit" variant="outline" className="w-full border-white/20 bg-white/5 text-white hover:bg-white/10">
+          <Button
+            type="submit"
+            variant="outline"
+            className="w-full border-[#0B1D2A]/15 bg-white text-[#0B1D2A] hover:bg-[#F5F7FA]"
+          >
             Continuer avec Google
           </Button>
         </form>
       </div>
 
-      <div className="space-y-2 text-center text-sm text-white/70">
-        <Link href="/forgot-password" className="hover:text-[#00BFA6]">
+      <div className="space-y-2 text-center text-sm text-muted-foreground">
+        <Link href="/forgot-password" className="font-medium text-[#0077B6] hover:underline">
           Mot de passe oublié ?
         </Link>
         <p>
           Pas encore de compte ?{" "}
-          <Link href="/register" className="font-medium text-[#00BFA6] hover:underline">
+          <Link href="/register" className="font-semibold text-[#0077B6] hover:underline">
             S&apos;inscrire
           </Link>
         </p>

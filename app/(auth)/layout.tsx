@@ -1,4 +1,4 @@
-import { BrandLogo } from "@/components/layout/brand-logo";
+import { AuthBackHome, AuthBrandingPanel, AuthMobileLogo } from "@/components/auth/auth-branding-panel";
 
 export default function AuthLayout({
   children,
@@ -6,13 +6,16 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-[#0B1D2A]">
-      <div className="flex flex-1 flex-col items-center justify-center px-6 py-10">
-        <div className="mb-8">
-          <BrandLogo size="lg" showTagline variant="light" />
-        </div>
-        <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#132B49]/80 p-8 shadow-2xl backdrop-blur">
-          {children}
+    <div className="min-h-screen bg-[#0B1D2A]">
+      <div className="mx-auto grid min-h-screen lg:grid-cols-2">
+        <AuthBrandingPanel />
+
+        <div className="flex flex-col items-center justify-center px-6 py-10">
+          <AuthMobileLogo />
+          <div className="w-full max-w-lg rounded-2xl border border-[#0B1D2A]/8 bg-white p-8 shadow-2xl shadow-black/20">
+            <AuthBackHome />
+            {children}
+          </div>
         </div>
       </div>
     </div>

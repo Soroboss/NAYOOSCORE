@@ -68,8 +68,8 @@ export function ForgotPasswordForm() {
         </Button>
       </form>
 
-      <p className="text-center text-sm text-white/70">
-        <Link href="/login" className="font-medium text-[#00BFA6] hover:underline">
+      <p className="text-center text-sm text-muted-foreground">
+        <Link href="/login" className="font-semibold text-[#0077B6] hover:underline">
           Retour à la connexion
         </Link>
       </p>
