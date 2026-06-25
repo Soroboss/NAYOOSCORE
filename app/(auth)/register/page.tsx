@@ -1,11 +1,16 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser, getRedirectPathForRole } from "@/lib/auth";
+import { getCurrentUser, getPmeRedirectPath, getRedirectPathForRole } from "@/lib/auth";
+import type { UserRole } from "@/lib/constants";
 import { RegisterForm } from "@/components/forms/register-form";
 
 export default async function RegisterPage() {
   const user = await getCurrentUser();
   if (user) {
-    redirect(getRedirectPathForRole(user.role));
+    const path =
+      user.role === "PME_OWNER" || user.role === "PME_STAFF" || user.role === "VIEWER"
+        ? await getPmeRedirectPath(user.id)
+        : getRedirectPathForRole(user.role as UserRole);
+    redirect(path);
   }
 
   return (

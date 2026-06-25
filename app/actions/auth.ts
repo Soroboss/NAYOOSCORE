@@ -7,6 +7,7 @@ import {
 } from "@/lib/auth-cookies";
 import {
   canAccessRoute,
+  getPmeRedirectPath,
   getRedirectPathForRole,
 } from "@/lib/auth";
 import { createInsforgeServerClient } from "@/lib/insforge-server";
@@ -78,7 +79,12 @@ export async function signInAction(
     );
   }
 
-  redirect(getRedirectPathForRole(role));
+  const redirectPath =
+    role === "PME_OWNER" || role === "PME_STAFF" || role === "VIEWER"
+      ? await getPmeRedirectPath(data.user.id)
+      : getRedirectPathForRole(role);
+
+  redirect(redirectPath);
 }
 
 export async function signUpAction(
@@ -131,7 +137,7 @@ export async function signUpAction(
     data.accessToken
   );
 
-  redirect(getRedirectPathForRole("PME_OWNER"));
+  redirect(await getPmeRedirectPath(data.user.id));
 }
 
 export async function signOutAction() {

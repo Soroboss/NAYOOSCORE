@@ -1,6 +1,7 @@
 import { ROLE_REDIRECTS, type UserRole } from "@/lib/constants";
 import { getAccessToken } from "@/lib/auth-cookies";
 import { createInsforgeServerClient } from "@/lib/insforge-server";
+import { getCompanyForUser } from "@/lib/company-context";
 import {
   getProfileByUserId,
   refreshSessionIfNeeded,
@@ -53,6 +54,14 @@ export async function getAuthSession(): Promise<AuthSession | null> {
 
 export function getRedirectPathForRole(role: UserRole): string {
   return ROLE_REDIRECTS[role] ?? "/login";
+}
+
+export async function getPmeRedirectPath(userId: string): Promise<string> {
+  const company = await getCompanyForUser(userId);
+  if (!company || !company.onboarding_completed) {
+    return "/pme/onboarding";
+  }
+  return "/pme/dashboard";
 }
 
 export function canAccessRoute(role: UserRole, pathname: string): boolean {
