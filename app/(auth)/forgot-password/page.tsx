@@ -1,30 +1,15 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { ForgotPasswordForm } from "@/components/forms/forgot-password-form";
 
 export default function ForgotPasswordPage() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Mot de passe oublié</CardTitle>
-        <CardDescription>
-          Réinitialisez votre accès Nayooscore
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Réinitialisation — étape 4
+    <div className="space-y-2">
+      <div className="mb-6 text-center">
+        <h1 className="text-2xl font-semibold text-white">Mot de passe oublié</h1>
+        <p className="text-sm text-white/60">
+          Recevez un lien pour réinitialiser votre accès
         </p>
-        <Button asChild variant="outline" className="w-full">
-          <Link href="/login">Retour à la connexion</Link>
-        </Button>
-      </CardContent>
-    </Card>
+      </div>
+      <ForgotPasswordForm />
+    </div>
   );
 }

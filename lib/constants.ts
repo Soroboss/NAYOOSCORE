@@ -1,6 +1,22 @@
 export const APP_NAME = "Nayooscore";
+export const APP_TAGLINE = "Le score qui inspire confiance";
 export const APP_DESCRIPTION =
   "Plateforme de score de finançabilité et d'accompagnement des PME";
+
+export const CONTACT = {
+  phone: "+225 07 57 22 87 31",
+  phoneHref: "tel:+2250757228731",
+  whatsapp: "+225 01 00 57 65 26",
+  whatsappHref: "https://wa.me/2250100576526",
+} as const;
+
+export const BRAND_COLORS = {
+  navy: "#0B1D2A",
+  darkBlue: "#132B49",
+  mediumBlue: "#0077B6",
+  teal: "#00BFA6",
+  background: "#F5F7FA",
+} as const;
 
 export const USER_ROLES = [
   "SUPER_ADMIN",

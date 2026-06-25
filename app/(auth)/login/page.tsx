@@ -1,30 +1,22 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { redirect } from "next/navigation";
+import { getCurrentUser, getRedirectPathForRole } from "@/lib/auth";
+import { LoginForm } from "@/components/forms/login-form";
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const user = await getCurrentUser();
+  if (user) {
+    redirect(getRedirectPathForRole(user.role));
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Connexion</CardTitle>
-        <CardDescription>
+    <div className="space-y-2">
+      <div className="mb-6 text-center">
+        <h1 className="text-2xl font-semibold text-white">Connexion</h1>
+        <p className="text-sm text-white/60">
           Accédez à votre espace Nayooscore
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Formulaire d&apos;authentification — étape 4
         </p>
-        <Button asChild className="w-full">
-          <Link href="/">Retour à l&apos;accueil</Link>
-        </Button>
-      </CardContent>
-    </Card>
+      </div>
+      <LoginForm />
+    </div>
   );
 }

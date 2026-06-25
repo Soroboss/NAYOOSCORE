@@ -1,0 +1,82 @@
+import type { UserRole } from "@/lib/constants";
+import {
+  getAccessToken,
+  getRefreshToken,
+  setAuthCookies,
+} from "@/lib/auth-cookies";
+import { createInsforgeServerClient } from "@/lib/insforge-server";
+import type { User } from "@/types/user";
+
+export async function upsertProfile(
+  input: {
+    id: string;
+    full_name: string;
+    email: string;
+    role?: UserRole;
+    phone?: string | null;
+  },
+  accessToken?: string
+) {
+  const token = accessToken ?? (await getAccessToken());
+  const client = createInsforgeServerClient(token);
+
+  const { data: existing } = await client.database
+    .from("profiles")
+    .select("id")
+    .eq("id", input.id)
+    .maybeSingle();
+
+  const payload = {
+    id: input.id,
+    full_name: input.full_name,
+    email: input.email,
+    role: input.role ?? "PME_OWNER",
+    phone: input.phone ?? null,
+  };
+
+  if (existing) {
+    return client.database
+      .from("profiles")
+      .update({
+        full_name: payload.full_name,
+        email: payload.email,
+        phone: payload.phone,
+      })
+      .eq("id", input.id);
+  }
+
+  return client.database.from("profiles").insert([payload]);
+}
+
+export async function getProfileByUserId(userId: string): Promise<User | null> {
+  const accessToken = await getAccessToken();
+  if (!accessToken) return null;
+
+  const client = createInsforgeServerClient(accessToken);
+  const { data, error } = await client.database
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data as User;
+}
+
+export async function refreshSessionIfNeeded(): Promise<string | null> {
+  const accessToken = await getAccessToken();
+  if (accessToken) return accessToken;
+
+  const refreshToken = await getRefreshToken();
+  if (!refreshToken) return null;
+
+  const client = createInsforgeServerClient();
+  const { data, error } = await client.auth.refreshSession({ refreshToken });
+
+  if (error || !data?.accessToken || !data?.refreshToken) {
+    return null;
+  }
+
+  await setAuthCookies(data.accessToken, data.refreshToken);
+  return data.accessToken;
+}
