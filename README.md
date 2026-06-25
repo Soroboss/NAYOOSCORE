@@ -38,7 +38,26 @@ database/          # Schéma SQL, seeds, migrations
 
 `SUPER_ADMIN` · `SAAS_MANAGER` · `INSTITUTION_ADMIN` · `INSTITUTION_ANALYST` · `PME_OWNER` · `PME_STAFF` · `VIEWER`
 
-## Scripts
+## InsForge
+
+Projet lié : `Nayooscore` (eu-central) — `https://idmq3ivb.eu-central.insforge.app`
+
+```bash
+# Lier le projet (si besoin)
+npx @insforge/cli link
+
+# Appliquer le schéma
+npx @insforge/cli db import database/migrations/001_nayooscore_initial.sql
+
+# Déployer les edge functions
+npx @insforge/cli functions deploy calculate-company-score
+npx @insforge/cli functions deploy create-audit-log
+npx @insforge/cli functions deploy generate-company-report
+npx @insforge/cli functions deploy generate-ai-recommendations
+```
+
+Variables requises dans `.env.local` — voir `.env.example`.
+
 
 | Commande        | Description              |
 |-----------------|--------------------------|

@@ -9,3 +9,6 @@ export interface User {
   created_at: string;
   updated_at: string;
 }
+
+/** Profil InsForge — table `profiles` liée à `auth.users` */
+export type Profile = User;
