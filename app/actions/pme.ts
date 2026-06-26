@@ -559,3 +559,84 @@ export async function generateRecommendationsAction(): Promise<PmeActionState> {
   revalidatePath("/pme/recommendations");
   return { success: true, message: "Recommandations générées." };
 }
+
+const inventorySchema = z.object({
+  name: z.string().min(2),
+  quantity: z.coerce.number().nonnegative(),
+  unit: z.string().optional(),
+});
+
+const inventoryAdjustSchema = z.object({
+  item_id: z.string().uuid(),
+  delta: z.coerce.number(),
+  reason: z.string().optional(),
+});
+
+export async function addInventoryItemAction(
+  _prev: PmeActionState,
+  formData: FormData
+): Promise<PmeActionState> {
+  const { company } = await requirePmeCompany();
+  const parsed = inventorySchema.safeParse({
+    name: formData.get("name"),
+    quantity: formData.get("quantity"),
+    unit: formData.get("unit") || undefined,
+  });
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Données invalides." };
+  }
+
+  const client = await getAuthedServerClient();
+  const { error } = await client.database.from("inventory_items").insert({
+    company_id: company.id,
+    name: parsed.data.name,
+    quantity: parsed.data.quantity,
+    unit: parsed.data.unit ?? null,
+  });
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath("/pme/inventory");
+  return { success: true, message: "Article ajouté au stock." };
+}
+
+export async function adjustInventoryAction(
+  _prev: PmeActionState,
+  formData: FormData
+): Promise<PmeActionState> {
+  const { company } = await requirePmeCompany();
+  const parsed = inventoryAdjustSchema.safeParse({
+    item_id: formData.get("item_id"),
+    delta: formData.get("delta"),
+    reason: formData.get("reason") || undefined,
+  });
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Données invalides." };
+  }
+
+  const client = await getAuthedServerClient();
+  const { data: item } = await client.database
+    .from("inventory_items")
+    .select("id, quantity, name")
+    .eq("id", parsed.data.item_id)
+    .eq("company_id", company.id)
+    .maybeSingle();
+
+  if (!item) return { success: false, error: "Article introuvable." };
+
+  const newQty = Number(item.quantity) + parsed.data.delta;
+  if (newQty < 0) {
+    return { success: false, error: "Stock insuffisant pour cette sortie." };
+  }
+
+  const { error } = await client.database
+    .from("inventory_items")
+    .update({ quantity: newQty })
+    .eq("id", item.id);
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath("/pme/inventory");
+  return {
+    success: true,
+    message: `Stock mis à jour : ${item.name} → ${newQty}`,
+  };
+}

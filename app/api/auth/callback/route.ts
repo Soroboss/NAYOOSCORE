@@ -45,7 +45,11 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  await setAuthCookies(data.accessToken, data.refreshToken);
+  await setAuthCookies(
+    data.accessToken,
+    data.refreshToken,
+    data.user?.emailVerified ?? true
+  );
   cookieStore.delete(CODE_VERIFIER_COOKIE);
 
   const authedClient = createInsforgeServerClient(data.accessToken);
@@ -65,6 +69,12 @@ export async function GET(request: NextRequest) {
   }
 
   const role = (profile?.role as UserRole | undefined) ?? "PME_OWNER";
+  const emailVerified = data.user?.emailVerified ?? true;
+
+  if (!emailVerified) {
+    return NextResponse.redirect(new URL("/verify-email", request.url));
+  }
+
   const redirectPath =
     role === "PME_OWNER" || role === "PME_STAFF" || role === "VIEWER"
       ? await getPmeRedirectPath(data.user.id)

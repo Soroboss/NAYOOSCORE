@@ -1,5 +1,10 @@
+import { redirect } from "next/navigation";
 import { ROLE_REDIRECTS, type UserRole } from "@/lib/constants";
-import { getAccessToken } from "@/lib/auth-cookies";
+import {
+  getAccessToken,
+  isEmailVerifiedCookie,
+  setEmailVerifiedCookie,
+} from "@/lib/auth-cookies";
 import { createInsforgeServerClient } from "@/lib/insforge-server";
 import { getCompanyForUser } from "@/lib/company-context";
 import {
@@ -18,6 +23,33 @@ export type AuthSession = {
   user: User;
   accessToken: string;
 };
+
+export async function syncEmailVerifiedFromAuth(accessToken: string): Promise<boolean> {
+  const client = createInsforgeServerClient(accessToken);
+  const { data } = await client.auth.getCurrentUser();
+  const verified = data?.user?.emailVerified ?? false;
+  await setEmailVerifiedCookie(verified);
+  return verified;
+}
+
+export async function requireVerifiedEmail(redirectPath?: string) {
+  const accessToken = (await refreshSessionIfNeeded()) ?? (await getAccessToken());
+  if (!accessToken) {
+    redirect("/login");
+  }
+
+  let verified = await isEmailVerifiedCookie();
+  if (!verified) {
+    verified = await syncEmailVerifiedFromAuth(accessToken);
+  }
+
+  if (!verified) {
+    const url = redirectPath
+      ? `/verify-email?redirect=${encodeURIComponent(redirectPath)}`
+      : "/verify-email";
+    redirect(url);
+  }
+}
 
 export async function getCurrentUser(): Promise<User | null> {
   const accessToken = (await refreshSessionIfNeeded()) ?? (await getAccessToken());

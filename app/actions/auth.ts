@@ -16,6 +16,13 @@ import type { UserRole } from "@/lib/constants";
 import { getUserDisplayName } from "@/lib/user-display";
 import { getPlanPrice } from "@/lib/pricing";
 import {
+  checkRateLimit,
+  RATE_LIMITS,
+  rateLimitErrorMessage,
+} from "@/lib/rate-limit";
+import { getClientIpFromHeaders } from "@/lib/request-ip";
+import { forgotPasswordSchema, loginSchema, registerSchema } from "@/lib/validations";
+import {
   isSignupCategory,
   isValidPlanForCategory,
   type SignupCategory,
@@ -35,12 +42,28 @@ export async function signInAction(
   _prev: AuthActionState,
   formData: FormData
 ): Promise<AuthActionState> {
-  const email = String(formData.get("email") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
-
-  if (!email || !password) {
-    return { success: false, error: "Email et mot de passe requis." };
+  const ip = await getClientIpFromHeaders();
+  const rate = checkRateLimit(
+    `auth:signin:${ip}`,
+    RATE_LIMITS.auth.limit,
+    RATE_LIMITS.auth.windowMs
+  );
+  if (!rate.success) {
+    return { success: false, error: rateLimitErrorMessage(rate.retryAfter) };
   }
+
+  const parsed = loginSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Données invalides.",
+    };
+  }
+
+  const { email, password } = parsed.data;
 
   const client = createInsforgeServerClient();
   const { data, error } = await client.auth.signInWithPassword({
@@ -62,7 +85,12 @@ export async function signInAction(
     return { success: false, error: "Connexion impossible." };
   }
 
-  await setAuthCookies(data.accessToken, data.refreshToken);
+  const emailVerified = data.user?.emailVerified ?? true;
+  await setAuthCookies(data.accessToken, data.refreshToken, emailVerified);
+
+  if (!emailVerified) {
+    redirect("/verify-email");
+  }
 
   const authedClient = createInsforgeServerClient(data.accessToken);
   const { data: profile } = await authedClient.database
@@ -97,15 +125,32 @@ export async function signUpAction(
   _prev: AuthActionState,
   formData: FormData
 ): Promise<AuthActionState> {
-  const full_name = String(formData.get("full_name") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
+  const ip = await getClientIpFromHeaders();
+  const rate = checkRateLimit(
+    `auth:signup:${ip}`,
+    RATE_LIMITS.auth.limit,
+    RATE_LIMITS.auth.windowMs
+  );
+  if (!rate.success) {
+    return { success: false, error: rateLimitErrorMessage(rate.retryAfter) };
+  }
+
   const categoryRaw = String(formData.get("category") ?? "pme");
   const plan = String(formData.get("plan") ?? "");
 
-  if (!full_name || !email || !password) {
-    return { success: false, error: "Tous les champs sont requis." };
+  const parsed = registerSchema.safeParse({
+    full_name: formData.get("full_name"),
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Données invalides.",
+    };
   }
+
+  const { full_name, email, password } = parsed.data;
 
   if (!isSignupCategory(categoryRaw) || !isValidPlanForCategory(categoryRaw, plan)) {
     return { success: false, error: "Parcours d'inscription invalide." };
@@ -151,7 +196,11 @@ export async function signUpAction(
       };
     }
 
-    await setAuthCookies(data.accessToken, data.refreshToken);
+    await setAuthCookies(
+      data.accessToken,
+      data.refreshToken,
+      data.user?.emailVerified ?? true
+    );
     await upsertProfile(
       {
         id: data.user.id,
@@ -233,7 +282,11 @@ export async function signUpAction(
     };
   }
 
-  await setAuthCookies(data.accessToken, data.refreshToken);
+  await setAuthCookies(
+    data.accessToken,
+    data.refreshToken,
+    data.user?.emailVerified ?? true
+  );
   await upsertProfile(
     {
       id: data.user.id,
@@ -258,15 +311,29 @@ export async function forgotPasswordAction(
   _prev: AuthActionState,
   formData: FormData
 ): Promise<AuthActionState> {
-  const email = String(formData.get("email") ?? "").trim();
+  const ip = await getClientIpFromHeaders();
+  const rate = checkRateLimit(
+    `auth:forgot:${ip}`,
+    RATE_LIMITS.forgotPassword.limit,
+    RATE_LIMITS.forgotPassword.windowMs
+  );
+  if (!rate.success) {
+    return { success: false, error: rateLimitErrorMessage(rate.retryAfter) };
+  }
 
-  if (!email) {
-    return { success: false, error: "Email requis." };
+  const parsed = forgotPasswordSchema.safeParse({
+    email: formData.get("email"),
+  });
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Email invalide.",
+    };
   }
 
   const client = createInsforgeServerClient();
   const { error } = await client.auth.sendResetPasswordEmail({
-    email,
+    email: parsed.data.email,
     redirectTo: `${getAppUrl()}/forgot-password`,
   });
 
@@ -280,10 +347,80 @@ export async function forgotPasswordAction(
   };
 }
 
+export async function resendVerificationAction(
+  _prev: AuthActionState = { success: false }
+): Promise<AuthActionState> {
+  const ip = await getClientIpFromHeaders();
+  const rate = checkRateLimit(
+    `auth:verify:${ip}`,
+    RATE_LIMITS.forgotPassword.limit,
+    RATE_LIMITS.forgotPassword.windowMs
+  );
+  if (!rate.success) {
+    return { success: false, error: rateLimitErrorMessage(rate.retryAfter) };
+  }
+
+  const { getAccessToken } = await import("@/lib/auth-cookies");
+  const { syncEmailVerifiedFromAuth } = await import("@/lib/auth");
+  const token = await getAccessToken();
+  if (!token) {
+    return { success: false, error: "Session expirée. Reconnectez-vous." };
+  }
+
+  const client = createInsforgeServerClient(token);
+  const { data: current } = await client.auth.getCurrentUser();
+  const email = current?.user?.email;
+
+  if (!email) {
+    return { success: false, error: "Impossible de récupérer votre email." };
+  }
+
+  if (current?.user?.emailVerified) {
+    await syncEmailVerifiedFromAuth(token);
+    return { success: true, message: "Votre email est déjà vérifié." };
+  }
+
+  const { error } = await client.auth.resendVerificationEmail({
+    email,
+    redirectTo: `${getAppUrl()}/login`,
+  });
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return {
+    success: true,
+    message: "Email de vérification renvoyé. Consultez votre boîte mail.",
+  };
+}
+
+export async function checkVerificationAction(
+  _prev: AuthActionState = { success: false }
+): Promise<AuthActionState> {
+  const { getAccessToken } = await import("@/lib/auth-cookies");
+  const { syncEmailVerifiedFromAuth } = await import("@/lib/auth");
+  const token = await getAccessToken();
+  if (!token) {
+    return { success: false, error: "Session expirée." };
+  }
+
+  const verified = await syncEmailVerifiedFromAuth(token);
+  if (verified) {
+    return { success: true, message: "Email vérifié. Redirection en cours…" };
+  }
+
+  return {
+    success: false,
+    error: "Email non encore vérifié. Cliquez sur le lien reçu par mail.",
+  };
+}
+
 export async function requireAuth(
   check: (role: UserRole) => boolean
 ) {
-  const { getCurrentUser } = await import("@/lib/auth");
+  const { getCurrentUser, requireVerifiedEmail } = await import("@/lib/auth");
+  await requireVerifiedEmail();
   const user = await getCurrentUser();
 
   if (!user) {
@@ -298,7 +435,8 @@ export async function requireAuth(
 }
 
 export async function requireAuthForPath(pathname: string) {
-  const { getCurrentUser } = await import("@/lib/auth");
+  const { getCurrentUser, requireVerifiedEmail } = await import("@/lib/auth");
+  await requireVerifiedEmail(pathname);
   const user = await getCurrentUser();
 
   if (!user) {

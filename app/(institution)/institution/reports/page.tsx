@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireInstitution } from "@/app/actions/institution";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { ScoreDistributionChart } from "@/components/dashboard/score-distribution-chart";
@@ -92,9 +93,19 @@ export default async function InstitutionReportsPage() {
         totalScored={stats.scoredCount}
       />
 
-      <div className="rounded-xl border border-dashed bg-white p-8 text-center text-sm text-muted-foreground">
-        Export PDF / Excel — disponible à l&apos;étape suivante (génération via edge
-        function <code className="text-xs">generate-company-report</code>).
+      <div className="flex flex-col items-center justify-between gap-4 rounded-xl border bg-white p-6 sm:flex-row">
+        <div className="text-center sm:text-left">
+          <p className="font-medium text-[#0B1D2A]">Exporter le portefeuille</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Téléchargez la liste des PME avec score et programme (CSV).
+          </p>
+        </div>
+        <Link
+          href="/api/institution/reports/export"
+          className="inline-flex items-center rounded-lg bg-[#0077B6] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#006299]"
+        >
+          Télécharger CSV
+        </Link>
       </div>
     </div>
   );

@@ -77,6 +77,10 @@ export async function refreshSessionIfNeeded(): Promise<string | null> {
     return null;
   }
 
-  await setAuthCookies(data.accessToken, data.refreshToken);
+  await setAuthCookies(
+    data.accessToken,
+    data.refreshToken,
+    data.user?.emailVerified ?? true
+  );
   return data.accessToken;
 }

@@ -64,4 +64,8 @@ export type CompanyProfileInput = z.infer<typeof companyProfileSchema>;
 export type SaleInput = z.infer<typeof saleSchema>;
 export type ExpenseInput = z.infer<typeof expenseSchema>;
 export type InstitutionInput = z.infer<typeof institutionSchema>;
-export type ProgramInput = z.infer<typeof programSchema>;
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Email invalide"),
+});
+
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;

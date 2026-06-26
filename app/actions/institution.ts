@@ -79,6 +79,57 @@ export async function createProgramAction(
   return { success: true, message: "Programme créé." };
 }
 
+const cohortSchema = z.object({
+  program_id: z.string().uuid(),
+  name: z.string().min(2, "Nom requis"),
+  description: z.string().optional(),
+  start_date: z.string().optional(),
+  end_date: z.string().optional(),
+});
+
+export async function createCohortAction(
+  _prev: InstitutionActionState,
+  formData: FormData
+): Promise<InstitutionActionState> {
+  const { institution } = await requireInstitutionAdmin();
+  const parsed = cohortSchema.safeParse({
+    program_id: formData.get("program_id"),
+    name: formData.get("name"),
+    description: formData.get("description") || undefined,
+    start_date: formData.get("start_date") || undefined,
+    end_date: formData.get("end_date") || undefined,
+  });
+
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Données invalides." };
+  }
+
+  const client = await getAuthedServerClient();
+  const { data: program } = await client.database
+    .from("programs")
+    .select("id")
+    .eq("id", parsed.data.program_id)
+    .eq("institution_id", institution.id)
+    .maybeSingle();
+
+  if (!program) return { success: false, error: "Programme introuvable." };
+
+  const { error } = await client.database.from("cohorts").insert({
+    program_id: parsed.data.program_id,
+    name: parsed.data.name,
+    description: parsed.data.description ?? null,
+    start_date: parsed.data.start_date ?? null,
+    end_date: parsed.data.end_date ?? null,
+    status: "active",
+  });
+
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath("/institution/cohorts");
+  revalidatePath("/institution/dashboard");
+  return { success: true, message: "Cohorte créée." };
+}
+
 const fundingDecisionSchema = z.object({
   funding_request_id: z.string().uuid(),
   decision: z.enum(["approved", "rejected", "observe"]),
