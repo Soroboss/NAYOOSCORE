@@ -198,7 +198,7 @@ export async function signInAction(
     requestedRedirect
   );
 
-  return { success: true, redirectTo: redirectPath };
+  redirect(redirectPath);
 }
 
 export async function signUpAction(

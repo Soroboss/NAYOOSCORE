@@ -1,15 +1,13 @@
-import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import {
   REFRESH_COOKIE,
-  setAuthCookies,
+  applyAuthCookiesToResponse,
 } from "@/lib/auth-cookies";
 import { getSafeRedirectPath } from "@/lib/auth-redirect";
 import { createInsforgeServerClient } from "@/lib/insforge-server";
 
 export async function GET(request: NextRequest) {
-  const cookieStore = await cookies();
-  const refreshToken = cookieStore.get(REFRESH_COOKIE)?.value;
+  const refreshToken = request.cookies.get(REFRESH_COOKIE)?.value;
   const redirectParam = request.nextUrl.searchParams.get("redirect");
 
   if (!refreshToken) {
@@ -32,12 +30,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  await setAuthCookies(
-    data.accessToken,
-    data.refreshToken ?? refreshToken,
-    data.user?.emailVerified ?? true
-  );
-
   const destination = getSafeRedirectPath(redirectParam, "/");
-  return NextResponse.redirect(new URL(destination, request.url));
+  const response = NextResponse.redirect(new URL(destination, request.url));
+
+  return applyAuthCookiesToResponse(response, {
+    accessToken: data.accessToken,
+    refreshToken: data.refreshToken ?? refreshToken,
+    emailVerified: data.user?.emailVerified ?? true,
+  });
 }

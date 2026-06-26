@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import type { NextResponse } from "next/server";
 
 export const ACCESS_COOKIE = "insforge_access_token";
 export const REFRESH_COOKIE = "insforge_refresh_token";
@@ -14,6 +15,32 @@ const authCookieOptions = {
 
 const ACCESS_MAX_AGE = 60 * 60 * 24 * 7;
 const REFRESH_MAX_AGE = 60 * 60 * 24 * 7;
+const EMAIL_VERIFIED_MAX_AGE = 60 * 60 * 24 * 7;
+
+export type AuthCookiePayload = {
+  accessToken: string;
+  refreshToken: string;
+  emailVerified?: boolean;
+};
+
+export function applyAuthCookiesToResponse(
+  response: NextResponse,
+  { accessToken, refreshToken, emailVerified = true }: AuthCookiePayload
+) {
+  response.cookies.set(ACCESS_COOKIE, accessToken, {
+    ...authCookieOptions,
+    maxAge: ACCESS_MAX_AGE,
+  });
+  response.cookies.set(REFRESH_COOKIE, refreshToken, {
+    ...authCookieOptions,
+    maxAge: REFRESH_MAX_AGE,
+  });
+  response.cookies.set(EMAIL_VERIFIED_COOKIE, emailVerified ? "1" : "0", {
+    ...authCookieOptions,
+    maxAge: EMAIL_VERIFIED_MAX_AGE,
+  });
+  return response;
+}
 
 export async function setAuthCookies(
   accessToken: string,

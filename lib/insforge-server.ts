@@ -32,7 +32,7 @@ export function createInsforgeAdminClient() {
 
   if (!baseUrl || !serviceRoleKey) {
     throw new Error(
-      "Variables NEXT_PUBLIC_INSFORGE_URL et INSFORGE_SERVICE_ROLE_KEY requises"
+      "Configuration serveur incomplète (INSFORGE_SERVICE_ROLE_KEY). Contactez le support."
     );
   }
 

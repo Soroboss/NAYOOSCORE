@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import {
   CODE_VERIFIER_COOKIE,
-  setAuthCookies,
+  applyAuthCookiesToResponse,
 } from "@/lib/auth-cookies";
 import { getPmeRedirectPath, getRedirectPathForRole } from "@/lib/auth";
 import { canAccessPme } from "@/lib/permissions";
@@ -46,13 +46,6 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  await setAuthCookies(
-    data.accessToken,
-    data.refreshToken,
-    data.user?.emailVerified ?? true
-  );
-  cookieStore.delete(CODE_VERIFIER_COOKIE);
-
   const authedClient = createInsforgeServerClient(data.accessToken);
   const { data: profile } = await authedClient.database
     .from("profiles")
@@ -73,12 +66,26 @@ export async function GET(request: NextRequest) {
   const emailVerified = data.user?.emailVerified ?? true;
 
   if (!emailVerified) {
-    return NextResponse.redirect(new URL("/verify-email", request.url));
+    const response = NextResponse.redirect(new URL("/verify-email", request.url));
+    applyAuthCookiesToResponse(response, {
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+      emailVerified: false,
+    });
+    response.cookies.delete(CODE_VERIFIER_COOKIE);
+    return response;
   }
 
   const redirectPath = canAccessPme(role)
     ? await getPmeRedirectPath(data.user.id)
     : getRedirectPathForRole(role);
 
-  return NextResponse.redirect(new URL(redirectPath, request.url));
+  const response = NextResponse.redirect(new URL(redirectPath, request.url));
+  applyAuthCookiesToResponse(response, {
+    accessToken: data.accessToken,
+    refreshToken: data.refreshToken,
+    emailVerified: true,
+  });
+  response.cookies.delete(CODE_VERIFIER_COOKIE);
+  return response;
 }
