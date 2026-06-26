@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState } from "react";
 import {
   resendSignupVerificationAction,
   verifySignupEmailAction,
@@ -51,11 +51,6 @@ export function SignupEmailVerificationStep({
     resendState.error ||
     resendState.message;
   const feedbackOk = verifyState.success || resendState.success;
-
-  useEffect(() => {
-    if (!verifyState.redirectTo) return;
-    window.location.assign(verifyState.redirectTo);
-  }, [verifyState.redirectTo]);
 
   return (
     <div className="space-y-6 rounded-xl border border-[#00BFA6]/25 bg-[#00BFA6]/5 p-6">
@@ -119,13 +114,9 @@ export function SignupEmailVerificationStep({
         <Button
           type="submit"
           className="w-full bg-[#00BFA6] text-white hover:bg-[#00a892]"
-          disabled={verifying || Boolean(verifyState.redirectTo)}
+          disabled={verifying}
         >
-          {verifyState.redirectTo
-            ? "Redirection…"
-            : verifying
-              ? "Vérification…"
-              : "Activer mon compte"}
+          {verifying ? "Vérification…" : "Activer mon compte"}
         </Button>
       </form>
 

@@ -20,7 +20,8 @@ export default async function LoginPage({ searchParams }: PageProps) {
 
   const user = await getCurrentUser();
   if (user) {
-    redirect(requestedRedirect || (await getLoginRedirectForUser(user)));
+    const target = requestedRedirect || (await getLoginRedirectForUser(user));
+    if (target) redirect(target);
   }
 
   const accessToken = await getAccessToken();
@@ -65,8 +66,8 @@ export default async function LoginPage({ searchParams }: PageProps) {
 
       {params.error === "no_institution" && (
         <p className="mb-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          Votre compte existe mais n&apos;est pas rattaché à une institution. Contactez le
-          support ou réinscrivez-vous.
+          Votre compte est actif mais l&apos;institution n&apos;a pas pu être finalisée.
+          Contactez le support à +225 07 57 22 87 31 ou réinscrivez-vous.
         </p>
       )}
 

@@ -93,15 +93,21 @@ export function getRedirectPathForRole(role: UserRole): string {
   return ROLE_REDIRECTS[role] ?? "/login";
 }
 
-export async function getLoginRedirectForUser(user: User): Promise<string> {
+export async function getLoginRedirectForUser(user: User): Promise<string | null> {
   if (canAccessInstitution(user.role)) {
     const institution = await getInstitutionForUser(user.id);
     if (institution) return "/institution/dashboard";
+    return null;
   }
   if (canAccessPme(user.role)) {
     return getPmeRedirectPath(user.id);
   }
   return getRedirectPathForRole(user.role);
+}
+
+export async function redirectLoggedInUser(user: User) {
+  const target = await getLoginRedirectForUser(user);
+  if (target) redirect(target);
 }
 
 export async function getPmeRedirectPath(userId: string): Promise<string> {

@@ -31,17 +31,22 @@ export async function upsertProfile(
   };
 
   if (existing) {
-    return client.database
+    const { error } = await client.database
       .from("profiles")
       .update({
         full_name: payload.full_name,
         email: payload.email,
         phone: payload.phone,
+        ...(input.role ? { role: input.role } : {}),
       })
       .eq("id", input.id);
+
+    if (error) throw new Error(error.message);
+    return;
   }
 
-  return client.database.from("profiles").insert([payload]);
+  const { error } = await client.database.from("profiles").insert([payload]);
+  if (error) throw new Error(error.message);
 }
 
 export async function getProfileByUserId(userId: string): Promise<User | null> {

@@ -1,6 +1,11 @@
-import { getAuthedServerClient } from "@/lib/insforge-server";
+import { createInsforgeAdminClient } from "@/lib/insforge-server";
+import { PLATFORM_ROLES } from "@/lib/constants";
 import { getInstitutionPlan, getPlanPrice } from "@/lib/pricing";
 import type { SubscriptionWithInstitution } from "@/types/subscription";
+
+function adminClient() {
+  return createInsforgeAdminClient();
+}
 
 export type AdminStats = {
   institutionsCount: number;
@@ -15,26 +20,26 @@ export type AdminStats = {
 };
 
 export async function getAdminStats(): Promise<AdminStats> {
-  const client = await getAuthedServerClient();
+  const client = adminClient();
   const [institutions, companies, users, programs, funding, subscriptions, scores] =
     await Promise.all([
-    client.database.from("institutions").select("id", { count: "exact", head: true }),
-    client.database.from("companies").select("id", { count: "exact", head: true }),
-    client.database.from("profiles").select("id", { count: "exact", head: true }),
-    client.database.from("programs").select("id", { count: "exact", head: true }),
-    client.database
-      .from("funding_requests")
-      .select("id", { count: "exact", head: true })
-      .in("status", ["submitted", "pending", "under_review"]),
-    client.database
-      .from("subscriptions")
-      .select("plan_name, amount, status")
-      .eq("status", "active"),
-    client.database
-      .from("scores")
-      .select("company_id, global_score, calculated_at")
-      .order("calculated_at", { ascending: false }),
-  ]);
+      client.database.from("institutions").select("id", { count: "exact", head: true }),
+      client.database.from("companies").select("id", { count: "exact", head: true }),
+      client.database.from("profiles").select("id", { count: "exact", head: true }),
+      client.database.from("programs").select("id", { count: "exact", head: true }),
+      client.database
+        .from("funding_requests")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["submitted", "pending", "under_review"]),
+      client.database
+        .from("subscriptions")
+        .select("plan_name, amount, status")
+        .eq("status", "active"),
+      client.database
+        .from("scores")
+        .select("company_id, global_score, calculated_at")
+        .order("calculated_at", { ascending: false }),
+    ]);
 
   const activeSubs = subscriptions.data ?? [];
   const mrr = activeSubs.reduce((sum, sub) => {
@@ -68,7 +73,7 @@ export async function getAdminStats(): Promise<AdminStats> {
 }
 
 export async function getAdminInstitutions() {
-  const client = await getAuthedServerClient();
+  const client = adminClient();
   const { data } = await client.database
     .from("institutions")
     .select("*")
@@ -76,18 +81,20 @@ export async function getAdminInstitutions() {
   return data ?? [];
 }
 
-export async function getAdminUsers() {
-  const client = await getAuthedServerClient();
+/** Utilisateurs équipe SaaS uniquement (pas les comptes institution / PME) */
+export async function getAdminPlatformUsers() {
+  const client = adminClient();
   const { data } = await client.database
     .from("profiles")
     .select("*")
+    .in("role", [...PLATFORM_ROLES])
     .order("created_at", { ascending: false })
     .limit(100);
   return data ?? [];
 }
 
 export async function getAdminAuditLogs() {
-  const client = await getAuthedServerClient();
+  const client = adminClient();
   const { data } = await client.database
     .from("audit_logs")
     .select("*")
@@ -97,16 +104,22 @@ export async function getAdminAuditLogs() {
 }
 
 export async function getAdminPrograms() {
-  const client = await getAuthedServerClient();
-  const { data } = await client.database
+  const client = adminClient();
+  const { data, error } = await client.database
     .from("programs")
     .select("*, institutions(name)")
     .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("getAdminPrograms:", error.message);
+    return [];
+  }
+
   return data ?? [];
 }
 
 export async function getAdminSubscriptions(): Promise<SubscriptionWithInstitution[]> {
-  const client = await getAuthedServerClient();
+  const client = adminClient();
   const { data } = await client.database
     .from("subscriptions")
     .select("*, institutions(name)")
@@ -177,9 +190,36 @@ export async function getAdminInstitutionsWithoutSubscription() {
     .map((i) => ({ id: i.id, name: i.name }));
 }
 
+export type InstitutionWithAdmin = Awaited<
+  ReturnType<typeof getAdminInstitutionsWithPlans>
+>[number];
+
 export async function getAdminInstitutionsWithPlans() {
   const institutions = await getAdminInstitutions();
   const subscriptions = await getAdminSubscriptions();
+  const client = adminClient();
+
+  const { data: links } = await client.database
+    .from("institution_users")
+    .select("institution_id, role, profiles(full_name, email)")
+    .eq("role", "INSTITUTION_ADMIN");
+
+  const adminByInstitution = new Map<
+    string,
+    { full_name: string; email: string }
+  >();
+
+  for (const link of links ?? []) {
+    const profile = Array.isArray(link.profiles)
+      ? link.profiles[0]
+      : link.profiles;
+    if (profile && !adminByInstitution.has(link.institution_id)) {
+      adminByInstitution.set(link.institution_id, {
+        full_name: profile.full_name,
+        email: profile.email,
+      });
+    }
+  }
 
   const subByInstitution = new Map<string, SubscriptionWithInstitution>();
   for (const sub of subscriptions) {
@@ -191,6 +231,7 @@ export async function getAdminInstitutionsWithPlans() {
   return institutions.map((inst) => {
     const sub = subByInstitution.get(inst.id);
     const plan = sub ? getInstitutionPlan(sub.plan_name) : null;
+    const admin = adminByInstitution.get(inst.id);
     return {
       ...inst,
       subscription: sub ?? null,
@@ -198,6 +239,13 @@ export async function getAdminInstitutionsWithPlans() {
       monthlyAmount: sub
         ? (sub.amount ?? getPlanPrice(sub.plan_name))
         : null,
+      adminName: admin?.full_name ?? null,
+      adminEmail: admin?.email ?? null,
     };
   });
+}
+
+/** @deprecated Utiliser getAdminPlatformUsers */
+export async function getAdminUsers() {
+  return getAdminPlatformUsers();
 }

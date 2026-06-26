@@ -33,6 +33,13 @@ export const USER_ROLES = [
 
 export type UserRole = (typeof USER_ROLES)[number];
 
+/** Rôles de l'équipe SaaS (admin plateforme) — distincts des comptes institution / PME */
+export const PLATFORM_ROLES = [
+  "SUPER_ADMIN",
+  "SAAS_MANAGER",
+  "SAAS_SUPPORT",
+] as const satisfies readonly UserRole[];
+
 export const INSTITUTION_TYPES = [
   "ministry",
   "ngo",

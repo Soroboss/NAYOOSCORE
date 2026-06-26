@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getCurrentUser, getLoginRedirectForUser } from "@/lib/auth";
+import { getCurrentUser, redirectLoggedInUser } from "@/lib/auth";
 import { RegisterForm } from "@/components/forms/register-form";
 import { SignupProgress } from "@/components/signup/signup-progress";
 import { formatXof } from "@/lib/format";
@@ -35,7 +35,7 @@ type PageProps = {
 export default async function RegisterPage({ searchParams }: PageProps) {
   const user = await getCurrentUser();
   if (user) {
-    redirect(await getLoginRedirectForUser(user));
+    await redirectLoggedInUser(user);
   }
 
   const { category: categoryParam, plan: planParam } = await searchParams;

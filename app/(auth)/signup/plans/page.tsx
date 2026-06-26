@@ -5,7 +5,7 @@ import {
   SelectableInstitutionPlan,
   SelectablePmePlan,
 } from "@/components/signup/plan-picker";
-import { getCurrentUser, getLoginRedirectForUser } from "@/lib/auth";
+import { getCurrentUser, redirectLoggedInUser } from "@/lib/auth";
 import { loadInstitutionPlans, loadPmePlans } from "@/lib/pricing-store";
 import {
   getCategoryTitle,
@@ -22,7 +22,7 @@ type PageProps = {
 export default async function SignupPlansPage({ searchParams }: PageProps) {
   const user = await getCurrentUser();
   if (user) {
-    redirect(await getLoginRedirectForUser(user));
+    await redirectLoggedInUser(user);
   }
 
   const { category: categoryParam, plan: planParam } = await searchParams;

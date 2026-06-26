@@ -32,6 +32,7 @@ export default async function AdminInstitutionsPage() {
             <tr>
               <th className="px-4 py-3">Nom</th>
               <th className="px-4 py-3">Type</th>
+              <th className="px-4 py-3">Administrateur</th>
               <th className="px-4 py-3">Localisation</th>
               <th className="px-4 py-3">Plan</th>
               <th className="px-4 py-3">Statut</th>
@@ -42,6 +43,16 @@ export default async function AdminInstitutionsPage() {
               <tr key={inst.id}>
                 <td className="px-4 py-3 font-medium">{inst.name}</td>
                 <td className="px-4 py-3">{typeLabels[inst.type] ?? inst.type}</td>
+                <td className="px-4 py-3">
+                  {inst.adminName ? (
+                    <div>
+                      <p className="font-medium">{inst.adminName}</p>
+                      <p className="text-xs text-muted-foreground">{inst.adminEmail}</p>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-amber-600">Aucun admin lié</span>
+                  )}
+                </td>
                 <td className="px-4 py-3">
                   {inst.city}, {inst.country}
                 </td>

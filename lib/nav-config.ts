@@ -22,7 +22,7 @@ export const adminNavGroups: NavGroup[] = [
     items: [
       { title: "Institutions", href: "/admin/institutions", icon: "building2" },
       { title: "Programmes", href: "/admin/programs", icon: "clipboardList" },
-      { title: "Utilisateurs", href: "/admin/users", icon: "users" },
+      { title: "Équipe SaaS", href: "/admin/users", icon: "users" },
       { title: "Abonnements", href: "/admin/subscriptions", icon: "creditCard" },
     ],
   },

@@ -1,14 +1,17 @@
-import { getAdminUsers } from "@/lib/admin-context";
+import { getAdminPlatformUsers } from "@/lib/admin-context";
 import { ROLE_LABELS } from "@/lib/nav-config";
 
 export default async function AdminUsersPage() {
-  const users = await getAdminUsers();
+  const users = await getAdminPlatformUsers();
 
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#0B1D2A]">Utilisateurs</h1>
-        <p className="text-muted-foreground">{users.length} profils enregistrés.</p>
+        <h1 className="text-2xl font-bold text-[#0B1D2A]">Équipe SaaS</h1>
+        <p className="text-muted-foreground">
+          {users.length} compte(s) administrateur plateforme. Les comptes institution
+          sont listés dans Institutions.
+        </p>
       </div>
       <div className="overflow-hidden rounded-xl border bg-white">
         <table className="w-full text-sm">

@@ -16,7 +16,88 @@ export type InstitutionSignupData = {
   plan: string;
 };
 
+/**
+ * Crée l'institution, le lien utilisateur, l'abonnement puis le profil.
+ * Toutes les écritures passent par le client admin (service role) pour garantir
+ * la cohérence même si le profil existait déjà ou si la RLS bloque l'utilisateur.
+ */
 export async function provisionInstitutionSignup(data: InstitutionSignupData) {
+  const admin = createInsforgeAdminClient();
+
+  const { data: existingLink, error: linkLookupError } = await admin.database
+    .from("institution_users")
+    .select("institution_id")
+    .eq("user_id", data.userId)
+    .maybeSingle();
+
+  if (linkLookupError) {
+    throw new Error(linkLookupError.message);
+  }
+
+  let institutionId = existingLink?.institution_id ?? null;
+
+  if (!institutionId) {
+    const { data: institution, error: instError } = await admin.database
+      .from("institutions")
+      .insert({
+        name: data.institution_name,
+        type: data.institution_type,
+        country: data.country,
+        city: data.city,
+        email: data.email,
+        phone: data.phone,
+        status: "active",
+      })
+      .select("id")
+      .single();
+
+    if (instError || !institution) {
+      throw new Error(instError?.message ?? "Impossible de créer l'institution.");
+    }
+
+    institutionId = institution.id;
+
+    const { error: linkError } = await admin.database.from("institution_users").insert({
+      institution_id: institutionId,
+      user_id: data.userId,
+      role: "INSTITUTION_ADMIN",
+    });
+
+    if (linkError) {
+      throw new Error(linkError.message);
+    }
+
+    const monthlyAmount = getPlanPrice(data.plan);
+    const { error: subError } = await admin.database.from("subscriptions").insert({
+      institution_id: institutionId,
+      plan_name: data.plan,
+      status: "active",
+      amount: monthlyAmount,
+    });
+
+    if (subError) {
+      throw new Error(
+        `Institution créée mais abonnement impossible : ${subError.message}`
+      );
+    }
+  }
+
+  const { error: profileError } = await admin.database.from("profiles").upsert(
+    {
+      id: data.userId,
+      full_name: data.full_name,
+      email: data.email,
+      role: "INSTITUTION_ADMIN",
+      phone: data.phone,
+    },
+    { onConflict: "id" }
+  );
+
+  if (profileError) {
+    throw new Error(profileError.message);
+  }
+
+  // Synchronise aussi via le token utilisateur (lecture côté app)
   await upsertProfile(
     {
       id: data.userId,
@@ -28,57 +109,7 @@ export async function provisionInstitutionSignup(data: InstitutionSignupData) {
     data.accessToken
   );
 
-  const admin = createInsforgeAdminClient();
-
-  const { data: existingLink } = await admin.database
-    .from("institution_users")
-    .select("institution_id")
-    .eq("user_id", data.userId)
-    .maybeSingle();
-
-  if (existingLink?.institution_id) {
-    return existingLink.institution_id;
-  }
-
-  const { data: institution, error: instError } = await admin.database
-    .from("institutions")
-    .insert({
-      name: data.institution_name,
-      type: data.institution_type,
-      country: data.country,
-      city: data.city,
-      email: data.email,
-      phone: data.phone,
-      status: "active",
-    })
-    .select("id")
-    .single();
-
-  if (instError || !institution) {
-    throw new Error(instError?.message ?? "Impossible de créer l'institution.");
-  }
-
-  const { error: linkError } = await admin.database.from("institution_users").insert({
-    institution_id: institution.id,
-    user_id: data.userId,
-    role: "INSTITUTION_ADMIN",
-  });
-
-  if (linkError) throw new Error(linkError.message);
-
-  const monthlyAmount = getPlanPrice(data.plan);
-  const { error: subError } = await admin.database.from("subscriptions").insert({
-    institution_id: institution.id,
-    plan_name: data.plan,
-    status: "active",
-    amount: monthlyAmount,
-  });
-
-  if (subError) {
-    console.error("subscription insert failed during signup:", subError.message);
-  }
-
-  return institution.id;
+  return institutionId;
 }
 
 export async function provisionPmeSignup(data: {
@@ -87,6 +118,23 @@ export async function provisionPmeSignup(data: {
   full_name: string;
   email: string;
 }) {
+  const admin = createInsforgeAdminClient();
+
+  const { error: profileError } = await admin.database.from("profiles").upsert(
+    {
+      id: data.userId,
+      full_name: data.full_name,
+      email: data.email,
+      role: "PME_OWNER",
+      phone: null,
+    },
+    { onConflict: "id" }
+  );
+
+  if (profileError) {
+    throw new Error(profileError.message);
+  }
+
   await upsertProfile(
     {
       id: data.userId,

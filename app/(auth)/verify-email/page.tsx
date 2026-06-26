@@ -4,7 +4,7 @@ import {
   getAccessToken,
   isEmailVerifiedCookie,
 } from "@/lib/auth-cookies";
-import { getEmailVerifiedFromAuth, getLoginRedirectForUser } from "@/lib/auth";
+import { getEmailVerifiedFromAuth, getCurrentUser, redirectLoggedInUser } from "@/lib/auth";
 import { createInsforgeServerClient } from "@/lib/insforge-server";
 
 export default async function VerifyEmailPage() {
@@ -22,7 +22,7 @@ export default async function VerifyEmailPage() {
     const { getCurrentUser } = await import("@/lib/auth");
     const user = await getCurrentUser();
     if (user) {
-      redirect(await getLoginRedirectForUser(user));
+      await redirectLoggedInUser(user);
     }
     redirect("/login");
   }

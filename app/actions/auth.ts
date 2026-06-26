@@ -126,6 +126,7 @@ async function resolvePostAuthRedirect(
   if (canAccessInstitution(effectiveRole)) {
     const institution = await getInstitutionForUser(userId, accessToken);
     if (institution) return "/institution/dashboard";
+    return "/login?error=no_institution";
   }
 
   if (canAccessPme(effectiveRole)) {

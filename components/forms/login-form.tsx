@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,11 +26,6 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
   });
-
-  useEffect(() => {
-    if (!state.redirectTo) return;
-    window.location.assign(state.redirectTo);
-  }, [state.redirectTo]);
 
   return (
     <div className="space-y-6">
@@ -71,9 +66,9 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
         <Button
           type="submit"
           className="w-full bg-[#00BFA6] text-white hover:bg-[#00a892]"
-          disabled={pending || Boolean(state.redirectTo)}
+          disabled={pending}
         >
-          {state.redirectTo ? "Redirection…" : pending ? "Connexion..." : "Se connecter"}
+          {pending ? "Connexion..." : "Se connecter"}
         </Button>
       </form>
 

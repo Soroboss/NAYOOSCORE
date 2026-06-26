@@ -2,13 +2,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SignupProgress } from "@/components/signup/signup-progress";
 import { CategoryPicker } from "@/components/signup/category-picker";
-import { getCurrentUser, getLoginRedirectForUser } from "@/lib/auth";
+import { getCurrentUser, redirectLoggedInUser } from "@/lib/auth";
 import { SIGNUP_CATEGORIES } from "@/lib/signup-flow";
 
 export default async function SignupCategoryPage() {
   const user = await getCurrentUser();
   if (user) {
-    redirect(await getLoginRedirectForUser(user));
+    await redirectLoggedInUser(user);
   }
 
   return (
