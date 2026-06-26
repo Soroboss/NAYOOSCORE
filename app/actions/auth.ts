@@ -40,6 +40,7 @@ export type AuthActionState = {
   message?: string;
   needsEmailVerification?: boolean;
   email?: string;
+  redirectTo?: string;
 };
 
 const verifySignupSchema = z.object({
@@ -223,6 +224,7 @@ export async function signUpAction(
     data.user.emailVerified ?? true
   );
 
+  let redirectTo: string;
   try {
     if (category === "institution") {
       await provisionInstitutionSignup({
@@ -237,22 +239,24 @@ export async function signUpAction(
         city: String(formData.get("city") ?? "").trim(),
         plan,
       });
-      redirect("/institution/dashboard");
+      redirectTo = "/institution/dashboard";
+    } else {
+      await provisionPmeSignup({
+        userId: data.user.id,
+        accessToken: data.accessToken,
+        full_name,
+        email,
+      });
+      redirectTo = await getPmeRedirectPath(data.user.id);
     }
-
-    await provisionPmeSignup({
-      userId: data.user.id,
-      accessToken: data.accessToken,
-      full_name,
-      email,
-    });
-    redirect(await getPmeRedirectPath(data.user.id));
   } catch (e) {
     return {
       success: false,
       error: e instanceof Error ? e.message : "Finalisation du compte impossible.",
     };
   }
+
+  return { success: true, redirectTo };
 }
 
 export async function verifySignupEmailAction(
@@ -321,6 +325,7 @@ export async function verifySignupEmailAction(
     true
   );
 
+  let redirectTo: string;
   try {
     if (data.category === "institution") {
       await provisionInstitutionSignup({
@@ -335,22 +340,24 @@ export async function verifySignupEmailAction(
         city: data.city!,
         plan: data.plan,
       });
-      redirect("/institution/dashboard");
+      redirectTo = "/institution/dashboard";
+    } else {
+      await provisionPmeSignup({
+        userId: verifyData.user.id,
+        accessToken: verifyData.accessToken,
+        full_name: data.full_name,
+        email: data.email,
+      });
+      redirectTo = await getPmeRedirectPath(verifyData.user.id);
     }
-
-    await provisionPmeSignup({
-      userId: verifyData.user.id,
-      accessToken: verifyData.accessToken,
-      full_name: data.full_name,
-      email: data.email,
-    });
-    redirect(await getPmeRedirectPath(verifyData.user.id));
   } catch (e) {
     return {
       success: false,
       error: e instanceof Error ? e.message : "Finalisation du compte impossible.",
     };
   }
+
+  return { success: true, redirectTo };
 }
 
 export async function resendSignupVerificationAction(

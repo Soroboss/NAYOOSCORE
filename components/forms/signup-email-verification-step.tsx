@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import {
   resendSignupVerificationAction,
   verifySignupEmailAction,
@@ -52,6 +52,11 @@ export function SignupEmailVerificationStep({
     resendState.message;
   const feedbackOk = verifyState.success || resendState.success;
 
+  useEffect(() => {
+    if (!verifyState.redirectTo) return;
+    window.location.assign(verifyState.redirectTo);
+  }, [verifyState.redirectTo]);
+
   return (
     <div className="space-y-6 rounded-xl border border-[#00BFA6]/25 bg-[#00BFA6]/5 p-6">
       <div>
@@ -85,15 +90,17 @@ export function SignupEmailVerificationStep({
         <input type="hidden" name="category" value={category} />
         <input type="hidden" name="plan" value={plan} />
         <input type="hidden" name="full_name" value={pending.full_name} />
-        {pending.institution_name && (
-          <input type="hidden" name="institution_name" value={pending.institution_name} />
+        {category === "institution" ? (
+          <>
+            <input type="hidden" name="institution_name" value={pending.institution_name ?? ""} />
+            <input type="hidden" name="institution_type" value={pending.institution_type ?? ""} />
+            <input type="hidden" name="country" value={pending.country ?? ""} />
+            <input type="hidden" name="city" value={pending.city ?? ""} />
+            <input type="hidden" name="phone" value={pending.phone ?? ""} />
+          </>
+        ) : (
+          pending.phone && <input type="hidden" name="phone" value={pending.phone} />
         )}
-        {pending.institution_type && (
-          <input type="hidden" name="institution_type" value={pending.institution_type} />
-        )}
-        {pending.country && <input type="hidden" name="country" value={pending.country} />}
-        {pending.city && <input type="hidden" name="city" value={pending.city} />}
-        {pending.phone && <input type="hidden" name="phone" value={pending.phone} />}
 
         <div className="space-y-2">
           <Label htmlFor="code">Code de vérification</Label>
@@ -112,9 +119,13 @@ export function SignupEmailVerificationStep({
         <Button
           type="submit"
           className="w-full bg-[#00BFA6] text-white hover:bg-[#00a892]"
-          disabled={verifying}
+          disabled={verifying || Boolean(verifyState.redirectTo)}
         >
-          {verifying ? "Vérification…" : "Activer mon compte"}
+          {verifyState.redirectTo
+            ? "Redirection…"
+            : verifying
+              ? "Vérification…"
+              : "Activer mon compte"}
         </Button>
       </form>
 

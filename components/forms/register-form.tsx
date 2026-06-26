@@ -113,6 +113,11 @@ export function RegisterForm({ category, plan }: RegisterFormProps) {
     setStep("verify");
   }, [state.needsEmailVerification, state.email, getValues]);
 
+  useEffect(() => {
+    if (!state.redirectTo) return;
+    window.location.assign(state.redirectTo);
+  }, [state.redirectTo]);
+
   if (step === "verify" && pendingSignup) {
     return (
       <SignupEmailVerificationStep

@@ -29,6 +29,17 @@ export async function provisionInstitutionSignup(data: InstitutionSignupData) {
   );
 
   const admin = createInsforgeAdminClient();
+
+  const { data: existingLink } = await admin.database
+    .from("institution_users")
+    .select("institution_id")
+    .eq("user_id", data.userId)
+    .maybeSingle();
+
+  if (existingLink?.institution_id) {
+    return existingLink.institution_id;
+  }
+
   const { data: institution, error: instError } = await admin.database
     .from("institutions")
     .insert({
@@ -56,12 +67,16 @@ export async function provisionInstitutionSignup(data: InstitutionSignupData) {
   if (linkError) throw new Error(linkError.message);
 
   const monthlyAmount = getPlanPrice(data.plan);
-  await admin.database.from("subscriptions").insert({
+  const { error: subError } = await admin.database.from("subscriptions").insert({
     institution_id: institution.id,
     plan_name: data.plan,
     status: "active",
     amount: monthlyAmount,
   });
+
+  if (subError) {
+    console.error("subscription insert failed during signup:", subError.message);
+  }
 
   return institution.id;
 }
