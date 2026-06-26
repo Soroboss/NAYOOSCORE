@@ -10,6 +10,7 @@ import {
   getPmeRedirectPath,
   getRedirectPathForRole,
 } from "@/lib/auth";
+import { canAccessPme } from "@/lib/permissions";
 import { createInsforgeServerClient, createInsforgeAdminClient } from "@/lib/insforge-server";
 import { upsertProfile } from "@/lib/profiles";
 import type { UserRole } from "@/lib/constants";
@@ -113,10 +114,9 @@ export async function signInAction(
     );
   }
 
-  const redirectPath =
-    role === "PME_OWNER" || role === "PME_STAFF" || role === "VIEWER"
-      ? await getPmeRedirectPath(data.user.id)
-      : getRedirectPathForRole(role);
+  const redirectPath = canAccessPme(role)
+    ? await getPmeRedirectPath(data.user.id)
+    : getRedirectPathForRole(role);
 
   redirect(redirectPath);
 }

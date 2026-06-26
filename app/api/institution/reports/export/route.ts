@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getInstitutionForUser } from "@/lib/institution-context";
 import { getInstitutionCompanies } from "@/lib/institution-context";
 import { getAccessToken } from "@/lib/auth-cookies";
+import { hasPermission, resolveInstitutionRole } from "@/lib/permissions";
 
 function csvEscape(value: string | number | null | undefined): string {
   const str = String(value ?? "");
@@ -22,6 +23,11 @@ export async function GET() {
   const institution = await getInstitutionForUser(user.id, token ?? undefined);
   if (!institution) {
     return NextResponse.json({ error: "Institution introuvable" }, { status: 403 });
+  }
+
+  const effectiveRole = resolveInstitutionRole(user.role, institution.member_role);
+  if (!hasPermission(effectiveRole, "reports:export")) {
+    return NextResponse.json({ error: "Export non autorisé pour votre rôle." }, { status: 403 });
   }
 
   const companies = await getInstitutionCompanies(institution.id, token ?? undefined);

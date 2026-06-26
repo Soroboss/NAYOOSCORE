@@ -5,6 +5,7 @@ import {
   setAuthCookies,
 } from "@/lib/auth-cookies";
 import { getPmeRedirectPath, getRedirectPathForRole } from "@/lib/auth";
+import { canAccessPme } from "@/lib/permissions";
 import { createInsforgeServerClient } from "@/lib/insforge-server";
 import { upsertProfile } from "@/lib/profiles";
 import type { UserRole } from "@/lib/constants";
@@ -75,10 +76,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/verify-email", request.url));
   }
 
-  const redirectPath =
-    role === "PME_OWNER" || role === "PME_STAFF" || role === "VIEWER"
-      ? await getPmeRedirectPath(data.user.id)
-      : getRedirectPathForRole(role);
+  const redirectPath = canAccessPme(role)
+    ? await getPmeRedirectPath(data.user.id)
+    : getRedirectPathForRole(role);
 
   return NextResponse.redirect(new URL(redirectPath, request.url));
 }

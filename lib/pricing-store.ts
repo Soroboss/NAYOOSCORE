@@ -114,3 +114,44 @@ export async function loadAllPricingPlans(includeInactive = false) {
 }
 
 export type PricingPlanAdminRow = PricingPlanRow;
+
+export function institutionPlanToAdminRow(
+  plan: InstitutionPlan,
+  active = true
+): PricingPlanAdminRow {
+  return {
+    id: plan.id,
+    category: "institution",
+    name: plan.name,
+    description: plan.description,
+    monthly_price: plan.monthlyPrice,
+    yearly_price: plan.yearlyPrice || null,
+    max_pme: plan.limits.maxPme,
+    max_programs: plan.limits.maxPrograms,
+    max_users: plan.limits.maxUsers,
+    for_whom: null,
+    features: plan.features,
+    highlighted: plan.highlighted ?? false,
+    active,
+    sort_order: 0,
+  };
+}
+
+export function pmePlanToAdminRow(plan: PmePlan, active = true): PricingPlanAdminRow {
+  return {
+    id: plan.id,
+    category: "pme",
+    name: plan.name,
+    description: plan.description,
+    monthly_price: plan.monthlyPrice,
+    yearly_price: null,
+    max_pme: null,
+    max_programs: null,
+    max_users: null,
+    for_whom: plan.forWhom,
+    features: plan.features,
+    highlighted: false,
+    active,
+    sort_order: 0,
+  };
+}

@@ -9,7 +9,11 @@ import {
   getInstitutionForUser,
 } from "@/lib/institution-context";
 import { getAuthedServerClient } from "@/lib/insforge-server";
-import { canAccessInstitution } from "@/lib/permissions";
+import {
+  canAccessInstitution,
+  hasPermission,
+  resolveInstitutionRole,
+} from "@/lib/permissions";
 
 export type InstitutionActionState = {
   success: boolean;
@@ -30,7 +34,14 @@ export async function requireInstitution() {
 
 export async function requireInstitutionAdmin() {
   const ctx = await requireInstitution();
-  if (ctx.institution.member_role !== "INSTITUTION_ADMIN" && ctx.user.role !== "SUPER_ADMIN") {
+  const effectiveRole = resolveInstitutionRole(
+    ctx.user.role,
+    ctx.institution.member_role
+  );
+  if (
+    ctx.user.role !== "SUPER_ADMIN" &&
+    !hasPermission(effectiveRole, "programs:write")
+  ) {
     redirect("/institution/dashboard");
   }
   return ctx;
@@ -142,6 +153,10 @@ export async function decideFundingAction(
   formData: FormData
 ): Promise<InstitutionActionState> {
   const { user, institution } = await requireInstitution();
+  const effectiveRole = resolveInstitutionRole(user.role, institution.member_role);
+  if (!hasPermission(effectiveRole, "funding:write")) {
+    return { success: false, error: "Vous n'avez pas le droit de valider un financement." };
+  }
   const parsed = fundingDecisionSchema.safeParse({
     funding_request_id: formData.get("funding_request_id"),
     decision: formData.get("decision"),

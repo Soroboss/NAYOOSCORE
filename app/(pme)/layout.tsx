@@ -3,7 +3,12 @@ import { requireAuth } from "@/app/actions/auth";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { buildPmeNavFromModules, type PmeModuleKey } from "@/lib/business-modules";
 import { getCompanyForUser } from "@/lib/company-context";
-import { canAccessPme } from "@/lib/permissions";
+import { pmeNavGroups } from "@/lib/nav-config";
+import {
+  canAccessPme,
+  filterNavGroups,
+  resolvePmeRole,
+} from "@/lib/permissions";
 
 export default async function PmeLayout({
   children,
@@ -17,12 +22,20 @@ export default async function PmeLayout({
     redirect("/pme/onboarding");
   }
 
+  const effectiveRole = resolvePmeRole(user.role, company.member_role);
+
   const enabledKeys = company.modules
     .filter((m) => m.enabled)
     .sort((a, b) => a.sort_order - b.sort_order)
     .map((m) => m.module_key as PmeModuleKey);
 
-  const navGroups = buildPmeNavFromModules(enabledKeys);
+  const navGroups = filterNavGroups(
+    [
+      ...buildPmeNavFromModules(enabledKeys),
+      ...pmeNavGroups.filter((group) => group.label === "Compte"),
+    ],
+    effectiveRole
+  );
 
   return (
     <DashboardShell

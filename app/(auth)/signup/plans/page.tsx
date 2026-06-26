@@ -5,8 +5,7 @@ import {
   SelectableInstitutionPlan,
   SelectablePmePlan,
 } from "@/components/signup/plan-picker";
-import { getCurrentUser, getPmeRedirectPath, getRedirectPathForRole } from "@/lib/auth";
-import type { UserRole } from "@/lib/constants";
+import { getCurrentUser, getLoginRedirectForUser } from "@/lib/auth";
 import { loadInstitutionPlans, loadPmePlans } from "@/lib/pricing-store";
 import {
   getCategoryTitle,
@@ -23,11 +22,7 @@ type PageProps = {
 export default async function SignupPlansPage({ searchParams }: PageProps) {
   const user = await getCurrentUser();
   if (user) {
-    const path =
-      user.role === "PME_OWNER" || user.role === "PME_STAFF" || user.role === "VIEWER"
-        ? await getPmeRedirectPath(user.id)
-        : getRedirectPathForRole(user.role as UserRole);
-    redirect(path);
+    redirect(await getLoginRedirectForUser(user));
   }
 
   const { category: categoryParam, plan: planParam } = await searchParams;

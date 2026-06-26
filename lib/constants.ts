@@ -21,10 +21,13 @@ export const BRAND_COLORS = {
 export const USER_ROLES = [
   "SUPER_ADMIN",
   "SAAS_MANAGER",
+  "SAAS_SUPPORT",
   "INSTITUTION_ADMIN",
   "INSTITUTION_ANALYST",
+  "INSTITUTION_VIEWER",
   "PME_OWNER",
   "PME_STAFF",
+  "PME_ACCOUNTANT",
   "VIEWER",
 ] as const;
 
@@ -61,9 +64,12 @@ export const SCORE_WEIGHTS = {
 export const ROLE_REDIRECTS: Record<UserRole, string> = {
   SUPER_ADMIN: "/admin/dashboard",
   SAAS_MANAGER: "/admin/dashboard",
+  SAAS_SUPPORT: "/admin/dashboard",
   INSTITUTION_ADMIN: "/institution/dashboard",
   INSTITUTION_ANALYST: "/institution/dashboard",
+  INSTITUTION_VIEWER: "/institution/dashboard",
   PME_OWNER: "/pme/dashboard",
   PME_STAFF: "/pme/dashboard",
+  PME_ACCOUNTANT: "/pme/dashboard",
   VIEWER: "/pme/dashboard",
 };

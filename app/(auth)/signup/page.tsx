@@ -2,18 +2,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SignupProgress } from "@/components/signup/signup-progress";
 import { CategoryPicker } from "@/components/signup/category-picker";
-import { getCurrentUser, getPmeRedirectPath, getRedirectPathForRole } from "@/lib/auth";
-import type { UserRole } from "@/lib/constants";
+import { getCurrentUser, getLoginRedirectForUser } from "@/lib/auth";
 import { SIGNUP_CATEGORIES } from "@/lib/signup-flow";
 
 export default async function SignupCategoryPage() {
   const user = await getCurrentUser();
   if (user) {
-    const path =
-      user.role === "PME_OWNER" || user.role === "PME_STAFF" || user.role === "VIEWER"
-        ? await getPmeRedirectPath(user.id)
-        : getRedirectPathForRole(user.role as UserRole);
-    redirect(path);
+    redirect(await getLoginRedirectForUser(user));
   }
 
   return (

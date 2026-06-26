@@ -12,9 +12,14 @@ import {
   createInsforgeAdminClient,
   createInsforgeServerClient,
 } from "@/lib/insforge-server";
-import { canAccessAdmin, canAccessInstitution } from "@/lib/permissions";
+import { canAccessAdmin, canAccessInstitution, canManageCollaborators, resolveInstitutionRole } from "@/lib/permissions";
 import { getSettingsPath } from "@/lib/settings-path";
 import type { UserRole } from "@/lib/constants";
+import {
+  ADMIN_INVITE_ROLES,
+  INSTITUTION_INVITE_ROLES,
+  PME_INVITE_ROLES,
+} from "@/lib/collaborators";
 
 export type SettingsActionState = {
   success: boolean;
@@ -174,23 +179,27 @@ export async function inviteCollaboratorAction(
   const { full_name, email, role } = parsed.data;
 
   if (canAccessAdmin(user.role)) {
-    if (role !== "SAAS_MANAGER") {
-      return { success: false, error: "Rôle autorisé : SAAS_MANAGER." };
+    if (!canManageCollaborators(user.role)) {
+      return { success: false, error: "Vous n'avez pas le droit d'inviter des collaborateurs." };
+    }
+    if (!ADMIN_INVITE_ROLES.includes(role as UserRole)) {
+      return { success: false, error: "Rôle admin invalide." };
     }
   } else if (canAccessInstitution(user.role)) {
     const { institution } = await requireInstitution();
-    if (user.role !== "INSTITUTION_ADMIN" && user.role !== "SUPER_ADMIN") {
+    const effectiveRole = resolveInstitutionRole(user.role, institution.member_role);
+    if (!canManageCollaborators(effectiveRole)) {
       return { success: false, error: "Réservé aux administrateurs institution." };
     }
-    if (!["INSTITUTION_ADMIN", "INSTITUTION_ANALYST"].includes(role)) {
+    if (!INSTITUTION_INVITE_ROLES.includes(role as UserRole)) {
       return { success: false, error: "Rôle institution invalide." };
     }
   } else {
-    const { company } = await requirePmeCompany();
-    if (user.role !== "PME_OWNER") {
+    await requirePmeCompany();
+    if (!canManageCollaborators(user.role)) {
       return { success: false, error: "Réservé au dirigeant PME." };
     }
-    if (!["PME_STAFF", "VIEWER"].includes(role)) {
+    if (!PME_INVITE_ROLES.includes(role as UserRole)) {
       return { success: false, error: "Rôle PME invalide." };
     }
   }
@@ -248,6 +257,94 @@ export async function inviteCollaboratorAction(
     success: true,
     message: `Collaborateur créé. Mot de passe temporaire : ${tempPassword} (à communiquer de façon sécurisée).`,
   };
+}
+
+export async function updateCollaboratorRoleAction(
+  _prev: SettingsActionState,
+  formData: FormData
+): Promise<SettingsActionState> {
+  const user = await getCurrentUser();
+  if (!user) return { success: false, error: "Non connecté." };
+
+  const space = formData.get("space");
+  const linkId = formData.get("link_id");
+  const targetUserId = formData.get("user_id");
+  const role = formData.get("role");
+
+  if (
+    typeof space !== "string" ||
+    typeof linkId !== "string" ||
+    typeof targetUserId !== "string" ||
+    typeof role !== "string"
+  ) {
+    return { success: false, error: "Données invalides." };
+  }
+
+  if (targetUserId === user.id) {
+    return { success: false, error: "Vous ne pouvez pas modifier votre propre rôle." };
+  }
+
+  const admin = createInsforgeAdminClient();
+
+  if (space === "admin") {
+    if (!canManageCollaborators(user.role)) {
+      return { success: false, error: "Permission refusée." };
+    }
+    if (!ADMIN_INVITE_ROLES.includes(role as UserRole)) {
+      return { success: false, error: "Rôle invalide." };
+    }
+    const { error } = await admin.database
+      .from("profiles")
+      .update({ role })
+      .eq("id", targetUserId);
+    if (error) return { success: false, error: error.message };
+  } else if (space === "institution") {
+    const { institution } = await requireInstitution();
+    const effectiveRole = resolveInstitutionRole(user.role, institution.member_role);
+    if (!canManageCollaborators(effectiveRole)) {
+      return { success: false, error: "Permission refusée." };
+    }
+    if (!INSTITUTION_INVITE_ROLES.includes(role as UserRole)) {
+      return { success: false, error: "Rôle invalide." };
+    }
+    const { error: profileError } = await admin.database
+      .from("profiles")
+      .update({ role })
+      .eq("id", targetUserId);
+    if (profileError) return { success: false, error: profileError.message };
+
+    const { error } = await admin.database
+      .from("institution_users")
+      .update({ role })
+      .eq("id", linkId)
+      .eq("institution_id", institution.id);
+    if (error) return { success: false, error: error.message };
+  } else if (space === "pme") {
+    const { company } = await requirePmeCompany();
+    if (!canManageCollaborators(user.role)) {
+      return { success: false, error: "Permission refusée." };
+    }
+    if (!PME_INVITE_ROLES.includes(role as UserRole)) {
+      return { success: false, error: "Rôle invalide." };
+    }
+    const { error: profileError } = await admin.database
+      .from("profiles")
+      .update({ role })
+      .eq("id", targetUserId);
+    if (profileError) return { success: false, error: profileError.message };
+
+    const { error } = await admin.database
+      .from("company_users")
+      .update({ role })
+      .eq("id", linkId)
+      .eq("company_id", company.id);
+    if (error) return { success: false, error: error.message };
+  } else {
+    return { success: false, error: "Espace inconnu." };
+  }
+
+  revalidatePath(getSettingsPath(user.role));
+  return { success: true, message: "Rôle collaborateur mis à jour." };
 }
 
 export async function requireSettingsAccess() {

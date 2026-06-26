@@ -1,6 +1,7 @@
 import { requireInstitution } from "@/app/actions/institution";
 import { CohortCreateForm } from "@/components/institution/cohort-create-form";
 import { getAuthedServerClient } from "@/lib/insforge-server";
+import { canManageInstitutionPrograms } from "@/lib/permissions";
 
 function relationName(value: unknown): string {
   if (!value) return "—";
@@ -13,8 +14,7 @@ function relationName(value: unknown): string {
 
 export default async function InstitutionCohortsPage() {
   const { institution, user } = await requireInstitution();
-  const canCreate =
-    institution.member_role === "INSTITUTION_ADMIN" || user.role === "SUPER_ADMIN";
+  const canCreate = canManageInstitutionPrograms(user.role, institution.member_role);
   const client = await getAuthedServerClient();
 
   const { data: programs } = await client.database

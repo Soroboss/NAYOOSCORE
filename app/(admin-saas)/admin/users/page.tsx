@@ -1,14 +1,5 @@
 import { getAdminUsers } from "@/lib/admin-context";
-
-const roleLabels: Record<string, string> = {
-  SUPER_ADMIN: "Super Admin",
-  SAAS_MANAGER: "Manager SaaS",
-  INSTITUTION_ADMIN: "Admin Institution",
-  INSTITUTION_ANALYST: "Analyste",
-  PME_OWNER: "Propriétaire PME",
-  PME_STAFF: "Staff PME",
-  VIEWER: "Lecteur",
-};
+import { ROLE_LABELS } from "@/lib/nav-config";
 
 export default async function AdminUsersPage() {
   const users = await getAdminUsers();
@@ -36,7 +27,7 @@ export default async function AdminUsersPage() {
                 <td className="px-4 py-3">{user.email}</td>
                 <td className="px-4 py-3">
                   <span className="rounded-full bg-[#0077B6]/10 px-2 py-1 text-xs text-[#0077B6]">
-                    {roleLabels[user.role] ?? user.role}
+                    {ROLE_LABELS[user.role] ?? user.role}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">

@@ -1,7 +1,7 @@
 import { requireAuth } from "@/app/actions/auth";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { adminNavGroups } from "@/lib/nav-config";
-import { canAccessAdmin } from "@/lib/permissions";
+import { canAccessAdmin, filterNavGroups } from "@/lib/permissions";
 
 export default async function AdminSaasLayout({
   children,
@@ -9,11 +9,12 @@ export default async function AdminSaasLayout({
   children: React.ReactNode;
 }) {
   const user = await requireAuth(canAccessAdmin);
+  const navGroups = filterNavGroups(adminNavGroups, user.role);
 
   return (
     <DashboardShell
       user={user}
-      navGroups={adminNavGroups}
+      navGroups={navGroups}
       spaceLabel="Admin SaaS"
       spaceIcon="shield"
     >

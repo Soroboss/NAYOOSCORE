@@ -128,9 +128,12 @@ export const pmeNavGroups: NavGroup[] = [
 export const ROLE_LABELS: Record<string, string> = {
   SUPER_ADMIN: "Super Admin",
   SAAS_MANAGER: "Gestionnaire SaaS",
+  SAAS_SUPPORT: "Support plateforme",
   INSTITUTION_ADMIN: "Admin Institution",
   INSTITUTION_ANALYST: "Analyste",
+  INSTITUTION_VIEWER: "Lecteur institution",
   PME_OWNER: "Dirigeant PME",
   PME_STAFF: "Collaborateur PME",
+  PME_ACCOUNTANT: "Comptable",
   VIEWER: "Lecteur",
 };

@@ -1,13 +1,15 @@
 import { formatXof } from "@/lib/format";
 import type { InstitutionPlan, PmePlan } from "@/lib/pricing";
 import { Check } from "lucide-react";
+import type { ReactNode } from "react";
 
 type InstitutionPlanCardProps = {
   plan: InstitutionPlan;
   compact?: boolean;
+  footer?: ReactNode;
 };
 
-export function InstitutionPlanCard({ plan, compact }: InstitutionPlanCardProps) {
+export function InstitutionPlanCard({ plan, compact, footer }: InstitutionPlanCardProps) {
   return (
     <div
       className={`flex flex-col rounded-xl border bg-white p-6 shadow-sm ${
@@ -42,11 +44,18 @@ export function InstitutionPlanCard({ plan, compact }: InstitutionPlanCardProps)
           </li>
         ))}
       </ul>
+      {footer}
     </div>
   );
 }
 
-export function PmePlanCard({ plan }: { plan: PmePlan }) {
+export function PmePlanCard({
+  plan,
+  footer,
+}: {
+  plan: PmePlan;
+  footer?: ReactNode;
+}) {
   return (
     <div className="rounded-xl border border-dashed border-[#0B1D2A]/15 bg-[#F5F7FA]/50 p-5">
       <div className="flex items-center justify-between gap-2">
@@ -63,6 +72,7 @@ export function PmePlanCard({ plan }: { plan: PmePlan }) {
           </li>
         ))}
       </ul>
+      {footer}
     </div>
   );
 }

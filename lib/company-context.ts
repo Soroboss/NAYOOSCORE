@@ -7,7 +7,10 @@ import {
 import type { Company } from "@/types/company";
 import type { CompanyModule } from "@/types/modules";
 
-export type CompanyWithModules = Company & { modules: CompanyModule[] };
+export type CompanyWithModules = Company & {
+  modules: CompanyModule[];
+  member_role: string;
+};
 
 export async function getCompanyForUser(
   userId: string,
@@ -19,11 +22,12 @@ export async function getCompanyForUser(
   const client = createInsforgeServerClient(token);
   const { data: links } = await client.database
     .from("company_users")
-    .select("company_id")
+    .select("company_id, role")
     .eq("user_id", userId)
     .limit(1);
 
-  const companyId = links?.[0]?.company_id;
+  const link = links?.[0];
+  const companyId = link?.company_id;
   if (!companyId) return null;
 
   const { data: company } = await client.database
@@ -40,7 +44,11 @@ export async function getCompanyForUser(
     .eq("company_id", companyId)
     .order("sort_order", { ascending: true });
 
-  return { ...(company as Company), modules: (modules ?? []) as CompanyModule[] };
+  return {
+    ...(company as Company),
+    modules: (modules ?? []) as CompanyModule[],
+    member_role: link?.role ?? "PME_OWNER",
+  };
 }
 
 export async function createCompanyWithModules(
@@ -94,7 +102,7 @@ export async function createCompanyWithModules(
   const { error: linkError } = await client.database.from("company_users").insert({
     company_id: company.id,
     user_id: userId,
-    role: "OWNER",
+    role: "PME_OWNER",
   });
 
   if (linkError) throw new Error(linkError.message);

@@ -5,7 +5,7 @@ import { z } from "zod";
 import { requireAuth } from "@/app/actions/auth";
 import { getAuthedServerClient } from "@/lib/insforge-server";
 import { getPlanPrice } from "@/lib/pricing";
-import { canAccessAdmin } from "@/lib/permissions";
+import { canAccessAdmin, canManagePricingPlans } from "@/lib/permissions";
 
 export type AdminActionState = { success: boolean; error?: string; message?: string };
 
@@ -71,7 +71,13 @@ export async function assignSubscriptionAction(
   _prev: AdminActionState,
   formData: FormData
 ): Promise<AdminActionState> {
-  await requireAdmin();
+  const user = await requireAdmin();
+  if (!canManagePricingPlans(user.role)) {
+    return {
+      success: false,
+      error: "Permission refusée : attribution d'abonnement réservée aux gestionnaires.",
+    };
+  }
 
   const amountRaw = formData.get("amount");
   const parsed = subscriptionSchema.safeParse({

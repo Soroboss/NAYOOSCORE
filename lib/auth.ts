@@ -15,6 +15,7 @@ import {
   canAccessAdmin,
   canAccessInstitution,
   canAccessPme,
+  canAccessPath,
 } from "@/lib/permissions";
 import { getUserDisplayName } from "@/lib/user-display";
 import type { User } from "@/types/user";
@@ -91,6 +92,13 @@ export function getRedirectPathForRole(role: UserRole): string {
   return ROLE_REDIRECTS[role] ?? "/login";
 }
 
+export async function getLoginRedirectForUser(user: User): Promise<string> {
+  if (canAccessPme(user.role)) {
+    return getPmeRedirectPath(user.id);
+  }
+  return getRedirectPathForRole(user.role);
+}
+
 export async function getPmeRedirectPath(userId: string): Promise<string> {
   const company = await getCompanyForUser(userId);
   if (!company || !company.onboarding_completed) {
@@ -100,8 +108,8 @@ export async function getPmeRedirectPath(userId: string): Promise<string> {
 }
 
 export function canAccessRoute(role: UserRole, pathname: string): boolean {
-  if (pathname.startsWith("/admin")) return canAccessAdmin(role);
-  if (pathname.startsWith("/institution")) return canAccessInstitution(role);
-  if (pathname.startsWith("/pme")) return canAccessPme(role);
-  return true;
+  if (pathname.startsWith("/admin") && !canAccessAdmin(role)) return false;
+  if (pathname.startsWith("/institution") && !canAccessInstitution(role)) return false;
+  if (pathname.startsWith("/pme") && !canAccessPme(role)) return false;
+  return canAccessPath(role, pathname);
 }

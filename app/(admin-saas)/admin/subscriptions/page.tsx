@@ -1,15 +1,21 @@
 import { PlanUpsertForm } from "@/components/admin/plan-upsert-form";
+import { AdminPricingPlanCard } from "@/components/admin/admin-pricing-plan-card";
 import { SubscriptionAssignForm } from "@/components/admin/subscription-assign-form";
 import { BillingModelBanner } from "@/components/billing/billing-model-banner";
-import {
-  InstitutionPlanCard,
-  PmePlanCard,
-} from "@/components/billing/pricing-plan-card";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { requireAdmin } from "@/app/actions/admin";
 import { getAdminBillingOverview } from "@/lib/admin-context";
 import { formatXof } from "@/lib/format";
 import { getInstitutionPlan, getPlanPrice } from "@/lib/pricing";
-import { loadAllPricingPlans } from "@/lib/pricing-store";
+import {
+  institutionPlanToAdminRow,
+  loadAllPricingPlans,
+  pmePlanToAdminRow,
+} from "@/lib/pricing-store";
+import {
+  canManagePricingPlans,
+  getPricingPlanRestrictionMessage,
+} from "@/lib/permissions";
 
 const statusLabels: Record<string, string> = {
   active: "Actif",
@@ -19,8 +25,13 @@ const statusLabels: Record<string, string> = {
 };
 
 export default async function AdminSubscriptionsPage() {
+  const user = await requireAdmin();
   const billing = await getAdminBillingOverview();
   const pricing = await loadAllPricingPlans(true);
+  const canUpdatePlans = canManagePricingPlans(user.role);
+  const restrictionMessage = getPricingPlanRestrictionMessage(user.role);
+
+  const rawById = new Map(pricing.raw.map((row) => [row.id, row]));
 
   return (
     <div className="space-y-8 p-6">
@@ -32,37 +43,21 @@ export default async function AdminSubscriptionsPage() {
 
       <BillingModelBanner />
 
-      <section className="space-y-6">
-        <div>
-          <h2 className="text-lg font-semibold text-[#0B1D2A]">
-            Créer ou modifier une offre
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Les plans actifs sont affichés sur la landing et le parcours d&apos;inscription.
-          </p>
-        </div>
-        <PlanUpsertForm />
-        {pricing.raw.length > 0 && (
-          <div className="space-y-3">
-            {pricing.raw.map((plan) => (
-              <details
-                key={plan.id}
-                className="rounded-xl border bg-white"
-              >
-                <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-[#0B1D2A]">
-                  Modifier : {plan.name}{" "}
-                  <span className="text-muted-foreground">
-                    ({plan.category}) — {plan.active ? "actif" : "inactif"}
-                  </span>
-                </summary>
-                <div className="border-t p-4">
-                  <PlanUpsertForm plan={plan} />
-                </div>
-              </details>
-            ))}
+      {canUpdatePlans ? (
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold text-[#0B1D2A]">Créer une offre</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Nouveau plan institution ou PME. Utilisez les boutons sur chaque carte pour modifier un plan existant.
+            </p>
           </div>
-        )}
-      </section>
+          <PlanUpsertForm />
+        </section>
+      ) : (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          {restrictionMessage}
+        </div>
+      )}
 
       <section className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-xl border bg-white p-5 shadow-sm">
@@ -94,9 +89,20 @@ export default async function AdminSubscriptionsPage() {
           Intégration Stripe prévue pour le paiement en ligne.
         </p>
         <div className="grid gap-4 lg:grid-cols-3">
-          {pricing.institution.map((plan) => (
-            <InstitutionPlanCard key={plan.id} plan={plan} />
-          ))}
+          {pricing.institution.map((plan) => {
+            const rawPlan =
+              rawById.get(plan.id) ?? institutionPlanToAdminRow(plan, true);
+            return (
+              <AdminPricingPlanCard
+                key={plan.id}
+                variant="institution"
+                plan={plan}
+                rawPlan={rawPlan}
+                canUpdate={canUpdatePlans}
+                restrictionMessage={restrictionMessage}
+              />
+            );
+          })}
         </div>
       </section>
 
@@ -109,9 +115,19 @@ export default async function AdminSubscriptionsPage() {
           uniquement les entrepreneurs sans partenaire institutionnel.
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
-          {pricing.pme.map((plan) => (
-            <PmePlanCard key={plan.id} plan={plan} />
-          ))}
+          {pricing.pme.map((plan) => {
+            const rawPlan = rawById.get(plan.id) ?? pmePlanToAdminRow(plan, true);
+            return (
+              <AdminPricingPlanCard
+                key={plan.id}
+                variant="pme"
+                plan={plan}
+                rawPlan={rawPlan}
+                canUpdate={canUpdatePlans}
+                restrictionMessage={restrictionMessage}
+              />
+            );
+          })}
         </div>
       </section>
 
@@ -164,7 +180,11 @@ export default async function AdminSubscriptionsPage() {
           </div>
         </div>
 
-        <SubscriptionAssignForm institutions={billing.institutionsWithoutPlan} />
+        <SubscriptionAssignForm
+          institutions={billing.institutionsWithoutPlan}
+          canAssign={canUpdatePlans}
+          restrictionMessage={restrictionMessage}
+        />
       </div>
 
       <div className="rounded-xl border border-dashed bg-[#F5F7FA]/50 p-5 text-sm text-muted-foreground">

@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getCurrentUser, getPmeRedirectPath, getRedirectPathForRole } from "@/lib/auth";
-import type { UserRole } from "@/lib/constants";
+import { getCurrentUser, getLoginRedirectForUser } from "@/lib/auth";
 import { RegisterForm } from "@/components/forms/register-form";
 import { SignupProgress } from "@/components/signup/signup-progress";
 import { formatXof } from "@/lib/format";
@@ -36,11 +35,7 @@ type PageProps = {
 export default async function RegisterPage({ searchParams }: PageProps) {
   const user = await getCurrentUser();
   if (user) {
-    const path =
-      user.role === "PME_OWNER" || user.role === "PME_STAFF" || user.role === "VIEWER"
-        ? await getPmeRedirectPath(user.id)
-        : getRedirectPathForRole(user.role as UserRole);
-    redirect(path);
+    redirect(await getLoginRedirectForUser(user));
   }
 
   const { category: categoryParam, plan: planParam } = await searchParams;

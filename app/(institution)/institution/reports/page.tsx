@@ -9,9 +9,12 @@ import {
   getInstitutionStats,
 } from "@/lib/institution-context";
 import { SCORE_THRESHOLDS } from "@/lib/constants";
+import { hasPermission, resolveInstitutionRole } from "@/lib/permissions";
 
 export default async function InstitutionReportsPage() {
-  const { institution } = await requireInstitution();
+  const { institution, user } = await requireInstitution();
+  const effectiveRole = resolveInstitutionRole(user.role, institution.member_role);
+  const canExport = hasPermission(effectiveRole, "reports:export");
   const [stats, companies, programs, distribution] = await Promise.all([
     getInstitutionStats(institution.id),
     getInstitutionCompanies(institution.id),
@@ -93,20 +96,22 @@ export default async function InstitutionReportsPage() {
         totalScored={stats.scoredCount}
       />
 
-      <div className="flex flex-col items-center justify-between gap-4 rounded-xl border bg-white p-6 sm:flex-row">
-        <div className="text-center sm:text-left">
-          <p className="font-medium text-[#0B1D2A]">Exporter le portefeuille</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Téléchargez la liste des PME avec score et programme (CSV).
-          </p>
+      {canExport && (
+        <div className="flex flex-col items-center justify-between gap-4 rounded-xl border bg-white p-6 sm:flex-row">
+          <div className="text-center sm:text-left">
+            <p className="font-medium text-[#0B1D2A]">Exporter le portefeuille</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Téléchargez la liste des PME avec score et programme (CSV).
+            </p>
+          </div>
+          <Link
+            href="/api/institution/reports/export"
+            className="inline-flex items-center rounded-lg bg-[#0077B6] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#006299]"
+          >
+            Télécharger CSV
+          </Link>
         </div>
-        <Link
-          href="/api/institution/reports/export"
-          className="inline-flex items-center rounded-lg bg-[#0077B6] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#006299]"
-        >
-          Télécharger CSV
-        </Link>
-      </div>
+      )}
     </div>
   );
 }

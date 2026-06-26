@@ -14,16 +14,20 @@ const initial: PricingActionState = { success: false };
 
 type PlanUpsertFormProps = {
   plan?: PricingPlanAdminRow;
+  embedded?: boolean;
 };
 
-export function PlanUpsertForm({ plan }: PlanUpsertFormProps) {
+export function PlanUpsertForm({ plan, embedded }: PlanUpsertFormProps) {
   const [state, action, pending] = useActionState(upsertPricingPlanAction, initial);
   const features = Array.isArray(plan?.features)
     ? (plan.features as string[]).join("\n")
     : "";
 
   return (
-    <form action={action} className="space-y-4 rounded-xl border bg-white p-6">
+    <form
+      action={action}
+      className={embedded ? "space-y-4" : "space-y-4 rounded-xl border bg-white p-6"}
+    >
       <div>
         <h2 className="font-semibold text-[#0B1D2A]">
           {plan ? `Modifier : ${plan.name}` : "Créer une offre / plan"}

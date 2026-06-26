@@ -14,15 +14,28 @@ const initialState: AdminActionState = { success: false };
 
 type SubscriptionAssignFormProps = {
   institutions: { id: string; name: string }[];
+  canAssign?: boolean;
+  restrictionMessage?: string | null;
 };
 
 export function SubscriptionAssignForm({
   institutions,
+  canAssign = true,
+  restrictionMessage,
 }: SubscriptionAssignFormProps) {
   const [state, formAction, pending] = useActionState(
     assignSubscriptionAction,
     initialState
   );
+
+  if (!canAssign) {
+    return (
+      <div className="rounded-xl border bg-white p-5 text-sm text-muted-foreground">
+        <h3 className="font-semibold text-[#0B1D2A]">Attribuer un plan</h3>
+        <p className="mt-2">{restrictionMessage ?? "Action non autorisée pour votre rôle."}</p>
+      </div>
+    );
+  }
 
   if (institutions.length === 0) {
     return (

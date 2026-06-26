@@ -1,13 +1,18 @@
 import { requireInstitution } from "@/app/actions/institution";
 import { CollaboratorInviteForm } from "@/components/settings/collaborator-invite-form";
+import { CollaboratorsList } from "@/components/settings/collaborators-list";
 import { PasswordSettingsForm } from "@/components/settings/password-settings-form";
 import { ProfileSettingsForm } from "@/components/settings/profile-settings-form";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { INSTITUTION_COLLABORATOR_ROLES } from "@/lib/collaborator-roles";
+import { listInstitutionCollaborators } from "@/lib/collaborators";
+import { canManageCollaborators, resolveInstitutionRole } from "@/lib/permissions";
 
 export default async function InstitutionSettingsPage() {
   const { user, institution } = await requireInstitution();
-  const canInvite =
-    institution.member_role === "INSTITUTION_ADMIN" || user.role === "SUPER_ADMIN";
+  const effectiveRole = resolveInstitutionRole(user.role, institution.member_role);
+  const canManage = canManageCollaborators(effectiveRole);
+  const collaborators = await listInstitutionCollaborators(institution.id);
 
   return (
     <div className="space-y-8 p-6">
@@ -20,15 +25,18 @@ export default async function InstitutionSettingsPage() {
         <ProfileSettingsForm user={user} />
         <PasswordSettingsForm />
       </div>
-      {canInvite && (
-        <CollaboratorInviteForm
-          description="Invitez des analystes ou administrateurs à votre institution."
-          roleOptions={[
-            { value: "INSTITUTION_ANALYST", label: "Analyste" },
-            { value: "INSTITUTION_ADMIN", label: "Administrateur" },
-          ]}
-        />
-      )}
+      <CollaboratorsList
+        collaborators={collaborators}
+        roleOptions={INSTITUTION_COLLABORATOR_ROLES}
+        canManage={canManage}
+        currentUserId={user.id}
+        space="institution"
+      />
+      <CollaboratorInviteForm
+        description="Invitez des analystes, lecteurs ou administrateurs avec des droits différenciés."
+        roleOptions={INSTITUTION_COLLABORATOR_ROLES}
+        canInvite={canManage}
+      />
     </div>
   );
 }

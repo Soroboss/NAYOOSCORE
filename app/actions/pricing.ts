@@ -4,12 +4,22 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/app/actions/admin";
 import { createInsforgeAdminClient } from "@/lib/insforge-server";
+import { canManagePricingPlans } from "@/lib/permissions";
+import type { User } from "@/types/user";
 
 export type PricingActionState = {
   success: boolean;
   error?: string;
   message?: string;
 };
+
+async function requirePricingPlanWrite(): Promise<User> {
+  const user = await requireAdmin();
+  if (!canManagePricingPlans(user.role)) {
+    throw new Error("Permission refusée : modification des offres tarifaires.");
+  }
+  return user;
+}
 
 const planSchema = z.object({
   id: z
@@ -42,7 +52,14 @@ export async function upsertPricingPlanAction(
   _prev: PricingActionState,
   formData: FormData
 ): Promise<PricingActionState> {
-  await requireAdmin();
+  try {
+    await requirePricingPlanWrite();
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : "Permission refusée.",
+    };
+  }
 
   const parsed = planSchema.safeParse({
     id: formData.get("id"),
@@ -103,7 +120,14 @@ export async function upsertPricingPlanAction(
 export async function deletePricingPlanAction(
   planId: string
 ): Promise<PricingActionState> {
-  await requireAdmin();
+  try {
+    await requirePricingPlanWrite();
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : "Permission refusée.",
+    };
+  }
   const client = createInsforgeAdminClient();
   const { error } = await client.database
     .from("pricing_plans")
