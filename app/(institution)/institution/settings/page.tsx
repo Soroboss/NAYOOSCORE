@@ -3,6 +3,7 @@ import { CollaboratorInviteForm } from "@/components/settings/collaborator-invit
 import { CollaboratorsList } from "@/components/settings/collaborators-list";
 import { PasswordSettingsForm } from "@/components/settings/password-settings-form";
 import { ProfileSettingsForm } from "@/components/settings/profile-settings-form";
+import { SettingsAlert } from "@/components/settings/settings-alert";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { INSTITUTION_COLLABORATOR_ROLES } from "@/lib/collaborator-roles";
 import { listInstitutionCollaborators } from "@/lib/collaborators";
@@ -12,7 +13,8 @@ export default async function InstitutionSettingsPage() {
   const { user, institution } = await requireInstitution();
   const effectiveRole = resolveInstitutionRole(user.role, institution.member_role);
   const canManage = canManageCollaborators(effectiveRole);
-  const collaborators = await listInstitutionCollaborators(institution.id);
+  const { collaborators, error: collaboratorsError } =
+    await listInstitutionCollaborators(institution.id);
 
   return (
     <div className="space-y-8 p-6">
@@ -21,6 +23,11 @@ export default async function InstitutionSettingsPage() {
         title="Paramètres"
         description="Profil, mot de passe et équipe institution."
       />
+      {collaboratorsError && (
+        <SettingsAlert variant="warning">
+          Profil et mot de passe restent disponibles. Équipe : {collaboratorsError}
+        </SettingsAlert>
+      )}
       <div className="grid gap-6 lg:grid-cols-2">
         <ProfileSettingsForm user={user} />
         <PasswordSettingsForm />

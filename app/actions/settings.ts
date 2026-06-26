@@ -87,7 +87,9 @@ export async function updateProfileAction(
 
   if (error) return { success: false, error: error.message };
 
-  revalidatePath(getSettingsPath(user.role));
+  revalidatePath("/admin/settings");
+  revalidatePath("/institution/settings");
+  revalidatePath("/pme/settings");
   return { success: true, message: "Profil mis à jour." };
 }
 
@@ -205,7 +207,19 @@ export async function inviteCollaboratorAction(
   }
 
   const tempPassword = generateTempPassword();
-  const admin = createInsforgeAdminClient();
+
+  let admin;
+  try {
+    admin = createInsforgeAdminClient();
+  } catch (e) {
+    return {
+      success: false,
+      error:
+        e instanceof Error
+          ? e.message
+          : "Configuration serveur incomplète pour inviter un collaborateur.",
+    };
+  }
 
   const { data: signUpData, error: signUpError } = await admin.auth.signUp({
     email,
@@ -284,7 +298,18 @@ export async function updateCollaboratorRoleAction(
     return { success: false, error: "Vous ne pouvez pas modifier votre propre rôle." };
   }
 
-  const admin = createInsforgeAdminClient();
+  let admin;
+  try {
+    admin = createInsforgeAdminClient();
+  } catch (e) {
+    return {
+      success: false,
+      error:
+        e instanceof Error
+          ? e.message
+          : "Configuration serveur incomplète pour modifier un collaborateur.",
+    };
+  }
 
   if (space === "admin") {
     if (!canManageCollaborators(user.role)) {

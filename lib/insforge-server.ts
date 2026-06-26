@@ -27,6 +27,10 @@ export async function getAuthedServerClient(accessToken?: string) {
   return createInsforgeServerClient(token);
 }
 
+export function isInsforgeAdminConfigured(): boolean {
+  return Boolean(baseUrl && process.env.INSFORGE_SERVICE_ROLE_KEY);
+}
+
 export function createInsforgeAdminClient() {
   const serviceRoleKey = process.env.INSFORGE_SERVICE_ROLE_KEY;
 
