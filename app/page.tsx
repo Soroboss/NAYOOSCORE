@@ -9,7 +9,7 @@ import { LandingNav } from "@/components/landing/landing-nav";
 import { PricingSection } from "@/components/landing/pricing-section";
 import { ScoringSection } from "@/components/landing/scoring-section";
 
-export default function HomePage() {
+export default async function HomePage() {
   return (
     <div className="flex min-h-full flex-1 flex-col bg-[#F5F7FA]">
       <LandingNav />

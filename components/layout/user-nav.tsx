@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { signOutAction } from "@/app/actions/auth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -13,8 +14,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ROLE_LABELS } from "@/lib/nav-config";
+import { getSettingsPath } from "@/lib/settings-path";
 import type { User } from "@/types/user";
-import { LogOut, UserRound } from "lucide-react";
+import { LogOut, Settings, UserRound } from "lucide-react";
 
 function getInitials(name: string) {
   return name
@@ -57,6 +59,13 @@ export function UserNav({ user }: { user: User }) {
             {ROLE_LABELS[user.role] ?? user.role}
           </Badge>
         </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href={getSettingsPath(user.role)} className="flex items-center gap-2">
+            <Settings className="size-4" />
+            Paramètres
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <form action={signOutAction} className="w-full">

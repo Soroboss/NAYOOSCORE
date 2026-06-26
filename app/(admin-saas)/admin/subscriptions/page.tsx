@@ -1,3 +1,4 @@
+import { PlanUpsertForm } from "@/components/admin/plan-upsert-form";
 import { SubscriptionAssignForm } from "@/components/admin/subscription-assign-form";
 import { BillingModelBanner } from "@/components/billing/billing-model-banner";
 import {
@@ -7,12 +8,8 @@ import {
 import { PageHeader } from "@/components/dashboard/page-header";
 import { getAdminBillingOverview } from "@/lib/admin-context";
 import { formatXof } from "@/lib/format";
-import {
-  INSTITUTION_PLANS,
-  PME_PLANS,
-  getInstitutionPlan,
-  getPlanPrice,
-} from "@/lib/pricing";
+import { getInstitutionPlan, getPlanPrice } from "@/lib/pricing";
+import { loadAllPricingPlans } from "@/lib/pricing-store";
 
 const statusLabels: Record<string, string> = {
   active: "Actif",
@@ -23,6 +20,7 @@ const statusLabels: Record<string, string> = {
 
 export default async function AdminSubscriptionsPage() {
   const billing = await getAdminBillingOverview();
+  const pricing = await loadAllPricingPlans(true);
 
   return (
     <div className="space-y-8 p-6">
@@ -33,6 +31,38 @@ export default async function AdminSubscriptionsPage() {
       />
 
       <BillingModelBanner />
+
+      <section className="space-y-6">
+        <div>
+          <h2 className="text-lg font-semibold text-[#0B1D2A]">
+            Créer ou modifier une offre
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Les plans actifs sont affichés sur la landing et le parcours d&apos;inscription.
+          </p>
+        </div>
+        <PlanUpsertForm />
+        {pricing.raw.length > 0 && (
+          <div className="space-y-3">
+            {pricing.raw.map((plan) => (
+              <details
+                key={plan.id}
+                className="rounded-xl border bg-white"
+              >
+                <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-[#0B1D2A]">
+                  Modifier : {plan.name}{" "}
+                  <span className="text-muted-foreground">
+                    ({plan.category}) — {plan.active ? "actif" : "inactif"}
+                  </span>
+                </summary>
+                <div className="border-t p-4">
+                  <PlanUpsertForm plan={plan} />
+                </div>
+              </details>
+            ))}
+          </div>
+        )}
+      </section>
 
       <section className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-xl border bg-white p-5 shadow-sm">
@@ -64,7 +94,7 @@ export default async function AdminSubscriptionsPage() {
           Intégration Stripe prévue pour le paiement en ligne.
         </p>
         <div className="grid gap-4 lg:grid-cols-3">
-          {INSTITUTION_PLANS.map((plan) => (
+          {pricing.institution.map((plan) => (
             <InstitutionPlanCard key={plan.id} plan={plan} />
           ))}
         </div>
@@ -79,7 +109,7 @@ export default async function AdminSubscriptionsPage() {
           uniquement les entrepreneurs sans partenaire institutionnel.
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
-          {PME_PLANS.map((plan) => (
+          {pricing.pme.map((plan) => (
             <PmePlanCard key={plan.id} plan={plan} />
           ))}
         </div>

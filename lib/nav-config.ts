@@ -32,6 +32,7 @@ export const adminNavGroups: NavGroup[] = [
       { title: "Scoring", href: "/admin/scoring", icon: "target" },
       { title: "Logs d'audit", href: "/admin/audit-logs", icon: "scrollText" },
       { title: "Support", href: "/admin/support", icon: "headphones" },
+      { title: "Paramètres", href: "/admin/settings", icon: "settings" },
     ],
   },
 ];
@@ -70,6 +71,7 @@ export const institutionNavGroups: NavGroup[] = [
     label: "Compte",
     items: [
       { title: "Abonnement", href: "/institution/billing", icon: "creditCard" },
+      { title: "Paramètres", href: "/institution/settings", icon: "settings" },
     ],
   },
 ];
@@ -113,6 +115,12 @@ export const pmeNavGroups: NavGroup[] = [
         href: "/pme/funding-request",
         icon: "landmark",
       },
+    ],
+  },
+  {
+    label: "Compte",
+    items: [
+      { title: "Paramètres", href: "/pme/settings", icon: "settings" },
     ],
   },
 ];

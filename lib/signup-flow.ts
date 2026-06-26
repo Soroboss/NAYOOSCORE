@@ -5,6 +5,7 @@ import {
   getInstitutionPlan,
   getPlanPrice,
 } from "@/lib/pricing";
+import { loadInstitutionPlans, loadPmePlans } from "@/lib/pricing-store";
 
 export type SignupCategory = "pme" | "institution";
 
@@ -53,6 +54,20 @@ export function isValidPlanForCategory(
   if (!plan) return false;
   if (category === "pme") return PME_PLAN_IDS.includes(plan as PmePlanId);
   return INSTITUTION_PLAN_IDS.includes(plan as PlanId);
+}
+
+export async function isValidPlanForCategoryAsync(
+  category: SignupCategory,
+  plan: string | undefined
+): Promise<boolean> {
+  if (!plan) return false;
+  const plans =
+    category === "pme" ? await loadPmePlans() : await loadInstitutionPlans();
+  return plans.some((p) => p.id === plan);
+}
+
+export async function getPlansForCategoryAsync(category: SignupCategory) {
+  return category === "pme" ? loadPmePlans() : loadInstitutionPlans();
 }
 
 export function getPlansForCategory(category: SignupCategory) {

@@ -1,11 +1,15 @@
 import Link from "next/link";
-import { BILLING_MODEL, INSTITUTION_PLANS, PME_PLANS } from "@/lib/pricing";
+import { BILLING_MODEL } from "@/lib/pricing";
+import { loadInstitutionPlans, loadPmePlans } from "@/lib/pricing-store";
 import { formatXof } from "@/lib/format";
 import { signupPlansPath } from "@/lib/signup-flow";
 import { Check, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function PricingSection() {
+export async function PricingSection() {
+  const institutionPlans = await loadInstitutionPlans();
+  const pmePlans = await loadPmePlans();
+
   return (
     <section id="tarifs" className="bg-white px-6 py-20">
       <div className="mx-auto max-w-6xl space-y-12">
@@ -30,7 +34,7 @@ export function PricingSection() {
             </Button>
           </div>
           <div className="grid gap-6 lg:grid-cols-3">
-            {INSTITUTION_PLANS.map((plan) => (
+            {institutionPlans.map((plan) => (
               <div
                 key={plan.id}
                 className={`flex flex-col rounded-2xl border p-6 ${
@@ -89,7 +93,7 @@ export function PricingSection() {
             </Button>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            {PME_PLANS.map((plan) => (
+            {pmePlans.map((plan) => (
               <div
                 key={plan.id}
                 className="rounded-xl border bg-white p-5"

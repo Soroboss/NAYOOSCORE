@@ -20,6 +20,7 @@ import {
   Percent,
   Receipt,
   ScrollText,
+  Settings,
   Shield,
   Sparkles,
   Stethoscope,
@@ -60,6 +61,7 @@ const ICON_MAP: Record<IconName, LucideIcon> = {
   package: Package,
   fileText: FileText,
   shield: Shield,
+  settings: Settings,
 };
 
 type IconByNameProps = {

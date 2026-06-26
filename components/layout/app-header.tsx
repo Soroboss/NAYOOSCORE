@@ -1,9 +1,10 @@
 "use client";
 
+import { signOutAction } from "@/app/actions/auth";
 import { UserNav } from "@/components/layout/user-nav";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import type { User } from "@/types/user";
-import { Bell } from "lucide-react";
+import { Bell, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type AppHeaderProps = {
@@ -32,6 +33,17 @@ export function AppHeader({ user, title }: AppHeaderProps) {
         >
           <Bell className="size-4" />
         </Button>
+        <form action={signOutAction} className="hidden sm:block">
+          <Button
+            type="submit"
+            variant="outline"
+            size="sm"
+            className="gap-2 border-[#0B1D2A]/15 text-[#0B1D2A]"
+          >
+            <LogOut className="size-4" />
+            Déconnexion
+          </Button>
+        </form>
         <UserNav user={user} />
       </div>
     </header>

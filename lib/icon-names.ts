@@ -26,6 +26,7 @@ export const ICON_NAMES = [
   "package",
   "fileText",
   "shield",
+  "settings",
 ] as const;
 
 export type IconName = (typeof ICON_NAMES)[number];

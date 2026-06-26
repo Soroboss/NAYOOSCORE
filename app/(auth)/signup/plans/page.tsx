@@ -7,14 +7,11 @@ import {
 } from "@/components/signup/plan-picker";
 import { getCurrentUser, getPmeRedirectPath, getRedirectPathForRole } from "@/lib/auth";
 import type { UserRole } from "@/lib/constants";
-import {
-  INSTITUTION_PLANS,
-  PME_PLANS,
-} from "@/lib/pricing";
+import { loadInstitutionPlans, loadPmePlans } from "@/lib/pricing-store";
 import {
   getCategoryTitle,
   isSignupCategory,
-  isValidPlanForCategory,
+  isValidPlanForCategoryAsync,
   registerPath,
   type SignupPlanId,
 } from "@/lib/signup-flow";
@@ -41,12 +38,12 @@ export default async function SignupPlansPage({ searchParams }: PageProps) {
 
   const category = categoryParam;
 
-  if (planParam && isValidPlanForCategory(category, planParam)) {
+  if (planParam && (await isValidPlanForCategoryAsync(category, planParam))) {
     redirect(registerPath(category, planParam as SignupPlanId));
   }
 
-  const pmePlans = PME_PLANS;
-  const institutionPlans = INSTITUTION_PLANS;
+  const pmePlans = await loadPmePlans();
+  const institutionPlans = await loadInstitutionPlans();
 
   return (
     <div className="space-y-8">
