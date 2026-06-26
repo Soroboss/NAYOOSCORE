@@ -6,6 +6,7 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar";
+import type { IconName } from "@/lib/icon-names";
 import type { NavGroup } from "@/lib/nav-config";
 import type { User } from "@/types/user";
 
@@ -13,7 +14,7 @@ type DashboardShellProps = {
   user: User;
   navGroups: NavGroup[];
   spaceLabel: string;
-  spaceIcon?: React.ReactNode;
+  spaceIcon?: IconName;
   children: React.ReactNode;
 };
 

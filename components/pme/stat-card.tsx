@@ -1,13 +1,14 @@
-import type { LucideIcon } from "lucide-react";
+import { IconByName } from "@/components/icons/icon-by-name";
+import type { IconName } from "@/lib/icon-names";
 
 type StatCardProps = {
   title: string;
   value: string;
   hint?: string;
-  icon: LucideIcon;
+  icon: IconName;
 };
 
-export function StatCard({ title, value, hint, icon: Icon }: StatCardProps) {
+export function StatCard({ title, value, hint, icon }: StatCardProps) {
   return (
     <div className="rounded-xl border bg-white p-5 shadow-sm">
       <div className="flex items-start justify-between">
@@ -17,7 +18,7 @@ export function StatCard({ title, value, hint, icon: Icon }: StatCardProps) {
           {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
         </div>
         <div className="rounded-lg bg-[#00BFA6]/10 p-2">
-          <Icon className="size-5 text-[#00BFA6]" />
+          <IconByName name={icon} className="size-5 text-[#00BFA6]" />
         </div>
       </div>
     </div>

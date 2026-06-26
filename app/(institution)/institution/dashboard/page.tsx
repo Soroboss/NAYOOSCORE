@@ -10,15 +10,9 @@ import {
   getInstitutionStats,
   getInstitutionUsage,
 } from "@/lib/institution-context";
+import { IconByName } from "@/components/icons/icon-by-name";
+import type { IconName } from "@/lib/icon-names";
 import { formatXof } from "@/lib/format";
-import {
-  BarChart3,
-  Briefcase,
-  ClipboardList,
-  HandCoins,
-  Percent,
-  Target,
-} from "lucide-react";
 import Link from "next/link";
 
 export default async function InstitutionDashboardPage() {
@@ -47,35 +41,35 @@ export default async function InstitutionDashboardPage() {
         <StatCard
           title="PME accompagnées"
           value={String(stats.companiesCount)}
-          icon={Briefcase}
+          icon="briefcase"
         />
         <StatCard
           title="Score moyen"
           value={`${stats.averageScore}/100`}
-          icon={BarChart3}
+          icon="barChart3"
         />
         <StatCard
           title="Couverture score"
           value={`${stats.coveragePercent}%`}
           hint={`${stats.scoredCount}/${stats.companiesCount} scorées`}
-          icon={Percent}
+          icon="percent"
         />
         <StatCard
           title="PME finançables"
           value={String(stats.fundableCount)}
           hint="Score ≥ 60"
-          icon={Target}
+          icon="target"
         />
         <StatCard
           title="Programmes actifs"
           value={String(stats.programsCount)}
-          icon={ClipboardList}
+          icon="clipboardList"
         />
         <StatCard
           title="Demandes en attente"
           value={String(stats.pendingFundingCount)}
           hint="À traiter"
-          icon={HandCoins}
+          icon="handCoins"
         />
       </div>
 
@@ -170,17 +164,19 @@ export default async function InstitutionDashboardPage() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        {[
-          { href: "/institution/funding-decisions", label: "Financement", icon: HandCoins },
-          { href: "/institution/reports", label: "Rapports", icon: BarChart3 },
-          { href: "/institution/companies", label: "Entreprises", icon: Briefcase },
-        ].map((item) => (
+        {(
+          [
+            { href: "/institution/funding-decisions", label: "Financement", icon: "handCoins" },
+            { href: "/institution/reports", label: "Rapports", icon: "barChart3" },
+            { href: "/institution/companies", label: "Entreprises", icon: "briefcase" },
+          ] as { href: string; label: string; icon: IconName }[]
+        ).map((item) => (
           <Link
             key={item.href}
             href={item.href}
             className="flex items-center gap-3 rounded-xl border bg-white p-4 text-sm font-medium text-[#0077B6] shadow-sm transition hover:border-[#00BFA6]/40"
           >
-            <item.icon className="size-4" />
+            <IconByName name={item.icon} className="size-4" />
             {item.label} →
           </Link>
         ))}

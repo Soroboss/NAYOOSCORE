@@ -1,4 +1,3 @@
-import { Briefcase } from "lucide-react";
 import { redirect } from "next/navigation";
 import { requireAuth } from "@/app/actions/auth";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
@@ -30,7 +29,7 @@ export default async function PmeLayout({
       user={user}
       navGroups={navGroups}
       spaceLabel={company.name}
-      spaceIcon={<Briefcase className="size-4 text-[#00BFA6]" />}
+      spaceIcon="briefcase"
     >
       {children}
     </DashboardShell>

@@ -1,20 +1,10 @@
+import Link from "next/link";
 import { StatCard } from "@/components/pme/stat-card";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { BillingModelBanner } from "@/components/billing/billing-model-banner";
 import { getAdminBillingOverview, getAdminStats } from "@/lib/admin-context";
 import { formatXof } from "@/lib/format";
 import { getInstitutionPlan } from "@/lib/pricing";
-import {
-  BarChart3,
-  Briefcase,
-  Building2,
-  ClipboardList,
-  CreditCard,
-  HandCoins,
-  TrendingUp,
-  Users,
-} from "lucide-react";
-import Link from "next/link";
 
 export default async function AdminDashboardPage() {
   const [stats, billing] = await Promise.all([
@@ -46,23 +36,23 @@ export default async function AdminDashboardPage() {
             title="MRR"
             value={formatXof(stats.mrr)}
             hint="Revenu mensuel récurrent"
-            icon={TrendingUp}
+            icon="trendingUp"
           />
           <StatCard
             title="Abonnements actifs"
             value={String(stats.activeSubscriptionsCount)}
             hint={`${billing.institutionsWithoutPlan.length} sans plan`}
-            icon={CreditCard}
+            icon="creditCard"
           />
           <StatCard
             title="Institutions"
             value={String(stats.institutionsCount)}
-            icon={Building2}
+            icon="building2"
           />
           <StatCard
             title="Programmes"
             value={String(stats.programsCount)}
-            icon={ClipboardList}
+            icon="clipboardList"
           />
         </div>
       </section>
@@ -72,25 +62,25 @@ export default async function AdminDashboardPage() {
           Portefeuille & impact
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard title="PME" value={String(stats.companiesCount)} icon={Briefcase} />
-          <StatCard title="Utilisateurs" value={String(stats.usersCount)} icon={Users} />
+          <StatCard title="PME" value={String(stats.companiesCount)} icon="briefcase" />
+          <StatCard title="Utilisateurs" value={String(stats.usersCount)} icon="users" />
           <StatCard
             title="Score moyen"
             value={`${stats.averagePlatformScore}/100`}
             hint={`${stats.scoredCompaniesCount} PME scorées`}
-            icon={BarChart3}
+            icon="barChart3"
           />
           <StatCard
             title="Couverture scoring"
             value={`${scoreCoverage}%`}
             hint="PME avec score calculé"
-            icon={BarChart3}
+            icon="barChart3"
           />
           <StatCard
             title="Demandes financement"
             value={String(stats.pendingFundingCount)}
             hint="En attente de traitement"
-            icon={HandCoins}
+            icon="handCoins"
           />
         </div>
       </section>

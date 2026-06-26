@@ -1,33 +1,9 @@
-import type { LucideIcon } from "lucide-react";
-import {
-  BarChart3,
-  Building2,
-  ClipboardList,
-  CreditCard,
-  FileText,
-  HandCoins,
-  Headphones,
-  LayoutDashboard,
-  LineChart,
-  ScrollText,
-  Sparkles,
-  Target,
-  TrendingUp,
-  Users,
-  Wallet,
-  Briefcase,
-  UserCircle,
-  Stethoscope,
-  Receipt,
-  Landmark,
-  Truck,
-  FolderOpen,
-} from "lucide-react";
+import type { IconName } from "@/lib/icon-names";
 
 export type NavItem = {
   title: string;
   href: string;
-  icon: LucideIcon;
+  icon: IconName;
 };
 
 export type NavGroup = {
@@ -38,24 +14,24 @@ export type NavGroup = {
 export const adminNavGroups: NavGroup[] = [
   {
     items: [
-      { title: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+      { title: "Dashboard", href: "/admin/dashboard", icon: "layoutDashboard" },
     ],
   },
   {
     label: "Gestion",
     items: [
-      { title: "Institutions", href: "/admin/institutions", icon: Building2 },
-      { title: "Programmes", href: "/admin/programs", icon: ClipboardList },
-      { title: "Utilisateurs", href: "/admin/users", icon: Users },
-      { title: "Abonnements", href: "/admin/subscriptions", icon: CreditCard },
+      { title: "Institutions", href: "/admin/institutions", icon: "building2" },
+      { title: "Programmes", href: "/admin/programs", icon: "clipboardList" },
+      { title: "Utilisateurs", href: "/admin/users", icon: "users" },
+      { title: "Abonnements", href: "/admin/subscriptions", icon: "creditCard" },
     ],
   },
   {
     label: "Configuration",
     items: [
-      { title: "Scoring", href: "/admin/scoring", icon: Target },
-      { title: "Logs d'audit", href: "/admin/audit-logs", icon: ScrollText },
-      { title: "Support", href: "/admin/support", icon: Headphones },
+      { title: "Scoring", href: "/admin/scoring", icon: "target" },
+      { title: "Logs d'audit", href: "/admin/audit-logs", icon: "scrollText" },
+      { title: "Support", href: "/admin/support", icon: "headphones" },
     ],
   },
 ];
@@ -66,34 +42,34 @@ export const institutionNavGroups: NavGroup[] = [
       {
         title: "Dashboard",
         href: "/institution/dashboard",
-        icon: LayoutDashboard,
+        icon: "layoutDashboard",
       },
     ],
   },
   {
     label: "Programmes",
     items: [
-      { title: "Programmes", href: "/institution/programs", icon: ClipboardList },
-      { title: "Cohortes", href: "/institution/cohorts", icon: Users },
-      { title: "Entreprises", href: "/institution/companies", icon: Briefcase },
+      { title: "Programmes", href: "/institution/programs", icon: "clipboardList" },
+      { title: "Cohortes", href: "/institution/cohorts", icon: "users" },
+      { title: "Entreprises", href: "/institution/companies", icon: "briefcase" },
     ],
   },
   {
     label: "Analyse",
     items: [
-      { title: "Scores", href: "/institution/scoring", icon: BarChart3 },
+      { title: "Scores", href: "/institution/scoring", icon: "barChart3" },
       {
         title: "Financement",
         href: "/institution/funding-decisions",
-        icon: HandCoins,
+        icon: "handCoins",
       },
-      { title: "Rapports", href: "/institution/reports", icon: FileText },
+      { title: "Rapports", href: "/institution/reports", icon: "fileText" },
     ],
   },
   {
     label: "Compte",
     items: [
-      { title: "Abonnement", href: "/institution/billing", icon: CreditCard },
+      { title: "Abonnement", href: "/institution/billing", icon: "creditCard" },
     ],
   },
 ];
@@ -101,41 +77,41 @@ export const institutionNavGroups: NavGroup[] = [
 export const pmeNavGroups: NavGroup[] = [
   {
     items: [
-      { title: "Dashboard", href: "/pme/dashboard", icon: LayoutDashboard },
-      { title: "Profil", href: "/pme/profile", icon: UserCircle },
-      { title: "Diagnostic", href: "/pme/diagnostic", icon: Stethoscope },
+      { title: "Dashboard", href: "/pme/dashboard", icon: "layoutDashboard" },
+      { title: "Profil", href: "/pme/profile", icon: "userCircle" },
+      { title: "Diagnostic", href: "/pme/diagnostic", icon: "stethoscope" },
     ],
   },
   {
     label: "Finances",
     items: [
-      { title: "Ventes", href: "/pme/sales", icon: TrendingUp },
-      { title: "Dépenses", href: "/pme/expenses", icon: Receipt },
-      { title: "Trésorerie", href: "/pme/treasury", icon: Wallet },
+      { title: "Ventes", href: "/pme/sales", icon: "trendingUp" },
+      { title: "Dépenses", href: "/pme/expenses", icon: "receipt" },
+      { title: "Trésorerie", href: "/pme/treasury", icon: "wallet" },
     ],
   },
   {
     label: "Gestion",
     items: [
-      { title: "Clients", href: "/pme/customers", icon: Users },
-      { title: "Fournisseurs", href: "/pme/suppliers", icon: Truck },
-      { title: "Employés", href: "/pme/employees", icon: Briefcase },
-      { title: "Documents", href: "/pme/documents", icon: FolderOpen },
+      { title: "Clients", href: "/pme/customers", icon: "users" },
+      { title: "Fournisseurs", href: "/pme/suppliers", icon: "truck" },
+      { title: "Employés", href: "/pme/employees", icon: "briefcase" },
+      { title: "Documents", href: "/pme/documents", icon: "folderOpen" },
     ],
   },
   {
     label: "Finançabilité",
     items: [
-      { title: "Mon score", href: "/pme/score", icon: LineChart },
+      { title: "Mon score", href: "/pme/score", icon: "lineChart" },
       {
         title: "Recommandations",
         href: "/pme/recommendations",
-        icon: Sparkles,
+        icon: "sparkles",
       },
       {
         title: "Demande financement",
         href: "/pme/funding-request",
-        icon: Landmark,
+        icon: "landmark",
       },
     ],
   },

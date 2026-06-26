@@ -1,18 +1,11 @@
 import Link from "next/link";
 import { requirePmeCompany } from "@/app/actions/company";
+import { IconByName } from "@/components/icons/icon-by-name";
 import { StatCard } from "@/components/pme/stat-card";
 import { getAuthedServerClient } from "@/lib/insforge-server";
 import { formatXof } from "@/lib/format";
 import { labelFor, SALE_TYPES } from "@/lib/pme-catalog";
-import {
-  Briefcase,
-  LineChart,
-  Megaphone,
-  MapPin,
-  Receipt,
-  TrendingUp,
-  Wallet,
-} from "lucide-react";
+import type { IconName } from "@/lib/icon-names";
 
 export default async function PmeDashboardPage() {
   const { company } = await requirePmeCompany();
@@ -83,13 +76,13 @@ export default async function PmeDashboardPage() {
     0
   );
 
-  const quickLinks = [
-    { href: "/pme/sales", label: "Ventes", icon: TrendingUp },
-    { href: "/pme/expenses", label: "Dépenses", icon: Receipt },
-    { href: "/pme/employees", label: "Équipe", icon: Briefcase },
-    { href: "/pme/marketing", label: "Marketing", icon: Megaphone },
-    { href: "/pme/field-ops", label: "Terrain", icon: MapPin },
-    { href: "/pme/score", label: "Mon score", icon: LineChart },
+  const quickLinks: { href: string; label: string; icon: IconName }[] = [
+    { href: "/pme/sales", label: "Ventes", icon: "trendingUp" },
+    { href: "/pme/expenses", label: "Dépenses", icon: "receipt" },
+    { href: "/pme/employees", label: "Équipe", icon: "briefcase" },
+    { href: "/pme/marketing", label: "Marketing", icon: "megaphone" },
+    { href: "/pme/field-ops", label: "Terrain", icon: "mapPin" },
+    { href: "/pme/score", label: "Mon score", icon: "lineChart" },
   ];
 
   return (
@@ -102,19 +95,19 @@ export default async function PmeDashboardPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Chiffre d'affaires" value={formatXof(totalSales)} icon={TrendingUp} />
-        <StatCard title="Dépenses" value={formatXof(totalExpenses)} icon={Receipt} />
+        <StatCard title="Chiffre d'affaires" value={formatXof(totalSales)} icon="trendingUp" />
+        <StatCard title="Dépenses" value={formatXof(totalExpenses)} icon="receipt" />
         <StatCard
           title="Résultat"
           value={formatXof(profit)}
           hint={profit >= 0 ? "Positif" : "À surveiller"}
-          icon={Wallet}
+          icon="wallet"
         />
         <StatCard
           title="Score global"
           value={`${globalScore}/100`}
           hint={scores?.[0]?.status ?? "Non calculé"}
-          icon={LineChart}
+          icon="lineChart"
         />
       </div>
 
@@ -122,17 +115,17 @@ export default async function PmeDashboardPage() {
         <StatCard
           title="Employés"
           value={String((employees ?? []).length)}
-          icon={Briefcase}
+          icon="briefcase"
         />
         <StatCard
           title="Marketing dépensé"
           value={formatXof(marketingTotal)}
-          icon={Megaphone}
+          icon="megaphone"
         />
         <StatCard
           title="Ventes terrain"
           value={formatXof(fieldTotal)}
-          icon={MapPin}
+          icon="mapPin"
         />
       </div>
 
@@ -200,7 +193,7 @@ export default async function PmeDashboardPage() {
             href={link.href}
             className="flex items-center gap-2 rounded-xl border bg-white p-3 text-sm font-medium text-[#0077B6] shadow-sm transition hover:border-[#00BFA6]/40"
           >
-            <link.icon className="size-4 shrink-0" />
+            <IconByName name={link.icon} className="size-4 shrink-0" />
             {link.label}
           </Link>
         ))}

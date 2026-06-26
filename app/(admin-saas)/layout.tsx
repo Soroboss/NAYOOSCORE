@@ -1,4 +1,3 @@
-import { Shield } from "lucide-react";
 import { requireAuth } from "@/app/actions/auth";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { adminNavGroups } from "@/lib/nav-config";
@@ -16,7 +15,7 @@ export default async function AdminSaasLayout({
       user={user}
       navGroups={adminNavGroups}
       spaceLabel="Admin SaaS"
-      spaceIcon={<Shield className="size-4 text-[#00BFA6]" />}
+      spaceIcon="shield"
     >
       {children}
     </DashboardShell>

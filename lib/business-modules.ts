@@ -1,22 +1,4 @@
-import type { LucideIcon } from "lucide-react";
-import {
-  LayoutDashboard,
-  UserCircle,
-  Stethoscope,
-  TrendingUp,
-  Receipt,
-  Wallet,
-  Users,
-  Truck,
-  Briefcase,
-  FolderOpen,
-  LineChart,
-  Sparkles,
-  Landmark,
-  Package,
-  Megaphone,
-  MapPin,
-} from "lucide-react";
+import type { IconName } from "@/lib/icon-names";
 
 export const PME_MODULE_KEYS = [
   "dashboard",
@@ -84,24 +66,24 @@ export const OPERATIONAL_PME_MODULES: PmeModuleKey[] = [
 
 export const PME_MODULE_META: Record<
   PmeModuleKey,
-  { title: string; href: string; icon: LucideIcon; group: string }
+  { title: string; href: string; icon: IconName; group: string }
 > = {
-  dashboard: { title: "Dashboard", href: "/pme/dashboard", icon: LayoutDashboard, group: "Accueil" },
-  profile: { title: "Profil", href: "/pme/profile", icon: UserCircle, group: "Accueil" },
-  diagnostic: { title: "Diagnostic", href: "/pme/diagnostic", icon: Stethoscope, group: "Accueil" },
-  sales: { title: "Ventes", href: "/pme/sales", icon: TrendingUp, group: "Finances" },
-  expenses: { title: "Dépenses", href: "/pme/expenses", icon: Receipt, group: "Finances" },
-  treasury: { title: "Trésorerie", href: "/pme/treasury", icon: Wallet, group: "Finances" },
-  customers: { title: "Clients", href: "/pme/customers", icon: Users, group: "Gestion" },
-  suppliers: { title: "Fournisseurs", href: "/pme/suppliers", icon: Truck, group: "Gestion" },
-  employees: { title: "Employés", href: "/pme/employees", icon: Briefcase, group: "Gestion" },
-  inventory: { title: "Stocks", href: "/pme/inventory", icon: Package, group: "Gestion" },
-  marketing: { title: "Marketing", href: "/pme/marketing", icon: Megaphone, group: "Opérations" },
-  field_ops: { title: "Actions terrain", href: "/pme/field-ops", icon: MapPin, group: "Opérations" },
-  documents: { title: "Documents", href: "/pme/documents", icon: FolderOpen, group: "Gestion" },
-  score: { title: "Mon score", href: "/pme/score", icon: LineChart, group: "Finançabilité" },
-  recommendations: { title: "Recommandations", href: "/pme/recommendations", icon: Sparkles, group: "Finançabilité" },
-  funding_request: { title: "Demande financement", href: "/pme/funding-request", icon: Landmark, group: "Finançabilité" },
+  dashboard: { title: "Dashboard", href: "/pme/dashboard", icon: "layoutDashboard", group: "Accueil" },
+  profile: { title: "Profil", href: "/pme/profile", icon: "userCircle", group: "Accueil" },
+  diagnostic: { title: "Diagnostic", href: "/pme/diagnostic", icon: "stethoscope", group: "Accueil" },
+  sales: { title: "Ventes", href: "/pme/sales", icon: "trendingUp", group: "Finances" },
+  expenses: { title: "Dépenses", href: "/pme/expenses", icon: "receipt", group: "Finances" },
+  treasury: { title: "Trésorerie", href: "/pme/treasury", icon: "wallet", group: "Finances" },
+  customers: { title: "Clients", href: "/pme/customers", icon: "users", group: "Gestion" },
+  suppliers: { title: "Fournisseurs", href: "/pme/suppliers", icon: "truck", group: "Gestion" },
+  employees: { title: "Employés", href: "/pme/employees", icon: "briefcase", group: "Gestion" },
+  inventory: { title: "Stocks", href: "/pme/inventory", icon: "package", group: "Gestion" },
+  marketing: { title: "Marketing", href: "/pme/marketing", icon: "megaphone", group: "Opérations" },
+  field_ops: { title: "Actions terrain", href: "/pme/field-ops", icon: "mapPin", group: "Opérations" },
+  documents: { title: "Documents", href: "/pme/documents", icon: "folderOpen", group: "Gestion" },
+  score: { title: "Mon score", href: "/pme/score", icon: "lineChart", group: "Finançabilité" },
+  recommendations: { title: "Recommandations", href: "/pme/recommendations", icon: "sparkles", group: "Finançabilité" },
+  funding_request: { title: "Demande financement", href: "/pme/funding-request", icon: "landmark", group: "Finançabilité" },
 };
 
 export const BUSINESS_TYPES: BusinessTypeConfig[] = [

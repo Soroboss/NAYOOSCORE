@@ -17,12 +17,15 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import type { NavGroup } from "@/lib/nav-config";
-import { Settings2, Shield } from "lucide-react";
+import { IconByName } from "@/components/icons/icon-by-name";
+
+import type { IconName } from "@/lib/icon-names";
+import { Settings2 } from "lucide-react";
 
 type AppSidebarProps = {
   navGroups: NavGroup[];
   spaceLabel: string;
-  spaceIcon?: React.ReactNode;
+  spaceIcon?: IconName;
 };
 
 export function AppSidebar({ navGroups, spaceLabel, spaceIcon }: AppSidebarProps) {
@@ -39,7 +42,11 @@ export function AppSidebar({ navGroups, spaceLabel, spaceIcon }: AppSidebarProps
           <BrandLogo size="sm" variant="light" className="items-start" />
         </Link>
         <div className="mt-4 flex items-center gap-2 rounded-lg bg-[#132B49] px-3 py-2 text-xs font-medium text-white/90">
-          {spaceIcon ?? <Shield className="size-4 text-[#00BFA6]" />}
+          {spaceIcon ? (
+            <IconByName name={spaceIcon} className="size-4 text-[#00BFA6]" />
+          ) : (
+            <IconByName name="shield" className="size-4 text-[#00BFA6]" />
+          )}
           <span>{spaceLabel}</span>
         </div>
       </SidebarHeader>
@@ -62,7 +69,7 @@ export function AppSidebar({ navGroups, spaceLabel, spaceIcon }: AppSidebarProps
                       className="text-white/80 hover:bg-[#132B49] hover:text-white data-[active=true]:bg-[#00BFA6]/15 data-[active=true]:text-[#00BFA6]"
                     >
                       <Link href={item.href}>
-                        <item.icon className="size-4" />
+                        <IconByName name={item.icon} className="size-4" />
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
