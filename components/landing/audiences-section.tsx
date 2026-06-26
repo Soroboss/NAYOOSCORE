@@ -18,7 +18,7 @@ const audiences = [
     image: "/landing/landing-pme.png",
     imageAlt: "PME gérant ses finances sur Nayooscore",
     cta: "Créer mon compte",
-    href: "/register",
+    href: "/signup/plans?category=pme",
     accent: "#00BFA6",
   },
   {
@@ -34,8 +34,8 @@ const audiences = [
     ],
     image: "/landing/landing-institution.png",
     imageAlt: "Institution analysant le portefeuille PME",
-    cta: "Accéder à l'espace institution",
-    href: "/login",
+    cta: "S'inscrire en tant qu'institution",
+    href: "/signup/plans?category=institution",
     accent: "#0077B6",
   },
 ];

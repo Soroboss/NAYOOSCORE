@@ -44,9 +44,12 @@ export function SiteFooter() {
             <Link href="/login" className="hover:text-[#00BFA6]">
               Connexion
             </Link>
-            <Link href="/register" className="hover:text-[#00BFA6]">
-              Inscription PME
+            <Link href="/signup" className="hover:text-[#00BFA6]">
+              S&apos;inscrire
             </Link>
+            <a href="#tarifs" className="hover:text-[#00BFA6]">
+              Tarifs
+            </a>
             <a href="#fonctionnalites" className="hover:text-[#00BFA6]">
               Fonctionnalités
             </a>

@@ -27,6 +27,7 @@ export const config = {
     "/pme/:path*",
     "/login",
     "/register",
+    "/signup",
     "/forgot-password",
   ],
 };

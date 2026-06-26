@@ -12,7 +12,7 @@ export default function AuthLayout({
 
         <div className="flex flex-col items-center justify-center px-6 py-10">
           <AuthMobileLogo />
-          <div className="w-full max-w-lg rounded-2xl border border-[#0B1D2A]/8 bg-white p-8 shadow-2xl shadow-black/20">
+          <div className="w-full max-w-5xl rounded-2xl border border-[#0B1D2A]/8 bg-white p-8 shadow-2xl shadow-black/20">
             <AuthBackHome />
             {children}
           </div>

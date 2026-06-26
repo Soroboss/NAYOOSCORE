@@ -46,8 +46,8 @@ export function HeroSection() {
               size="lg"
               className="bg-[#00BFA6] text-white hover:bg-[#00a892]"
             >
-              <Link href="/register">
-                Créer mon compte PME
+              <Link href="/signup">
+                Créer mon compte
                 <ArrowRight className="ml-2 size-4" />
               </Link>
             </Button>
@@ -57,7 +57,7 @@ export function HeroSection() {
               variant="outline"
               className="border-white/20 bg-transparent text-white hover:bg-white/10"
             >
-              <Link href="/login">Espace institution</Link>
+              <Link href="/login">Connexion</Link>
             </Button>
           </div>
 

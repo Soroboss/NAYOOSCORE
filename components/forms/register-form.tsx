@@ -10,46 +10,174 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signInWithGoogleAction } from "@/app/actions/oauth";
+import { INSTITUTION_TYPES } from "@/lib/constants";
+import type { SignupCategory, SignupPlanId } from "@/lib/signup-flow";
 
-const registerFormSchema = z
-  .object({
-    full_name: z.string().min(2, "Nom requis"),
-    email: z.string().email("Email invalide"),
-    password: z.string().min(8, "Mot de passe minimum 8 caractères"),
-    confirm_password: z.string(),
-    accept_terms: z.union([z.literal("on"), z.undefined()]),
-  })
-  .refine((data) => data.password === data.confirm_password, {
-    message: "Les mots de passe ne correspondent pas",
-    path: ["confirm_password"],
-  })
-  .refine((data) => data.accept_terms === "on", {
-    message: "Vous devez accepter les conditions.",
-    path: ["accept_terms"],
-  });
+const institutionTypeLabels: Record<string, string> = {
+  ministry: "Ministère",
+  ngo: "ONG",
+  bank: "Banque",
+  fund: "Fonds",
+  incubator: "Incubateur",
+  accelerator: "Accélérateur",
+  private_company: "Entreprise privée",
+};
 
-type RegisterFormInput = z.infer<typeof registerFormSchema>;
+function buildSchema(category: SignupCategory) {
+  const base = z
+    .object({
+      full_name: z.string().min(2, "Nom requis"),
+      email: z.string().email("Email invalide"),
+      password: z.string().min(8, "Mot de passe minimum 8 caractères"),
+      confirm_password: z.string(),
+      accept_terms: z.union([z.literal("on"), z.undefined()]),
+      institution_name: z.string().optional(),
+      institution_type: z.string().optional(),
+      country: z.string().optional(),
+      city: z.string().optional(),
+      phone: z.string().optional(),
+    })
+    .refine((data) => data.password === data.confirm_password, {
+      message: "Les mots de passe ne correspondent pas",
+      path: ["confirm_password"],
+    })
+    .refine((data) => data.accept_terms === "on", {
+      message: "Vous devez accepter les conditions.",
+      path: ["accept_terms"],
+    });
+
+  if (category === "institution") {
+    return base
+      .refine((data) => (data.institution_name?.trim().length ?? 0) >= 2, {
+        message: "Nom de l'institution requis",
+        path: ["institution_name"],
+      })
+      .refine((data) => INSTITUTION_TYPES.includes(data.institution_type as never), {
+        message: "Type d'institution requis",
+        path: ["institution_type"],
+      })
+      .refine((data) => (data.country?.trim().length ?? 0) >= 2, {
+        message: "Pays requis",
+        path: ["country"],
+      })
+      .refine((data) => (data.city?.trim().length ?? 0) >= 2, {
+        message: "Ville requise",
+        path: ["city"],
+      });
+  }
+
+  return base;
+}
+
+type RegisterFormProps = {
+  category: SignupCategory;
+  plan: SignupPlanId;
+};
 
 const initialState: AuthActionState = { success: false };
-
 const passwordHints = ["8 caractères minimum", "Majuscule recommandée", "Chiffre recommandé"];
 
-export function RegisterForm() {
+export function RegisterForm({ category, plan }: RegisterFormProps) {
   const [state, formAction, pending] = useActionState(signUpAction, initialState);
+  const isInstitution = category === "institution";
+
+  const schema = buildSchema(category);
+  type RegisterFormInput = z.infer<typeof schema>;
 
   const {
     register,
     formState: { errors },
   } = useForm<RegisterFormInput>({
-    resolver: zodResolver(registerFormSchema),
+    resolver: zodResolver(schema),
   });
+
+  const submitLabel =
+    category === "pme" && plan === "pme_free"
+      ? "Créer mon compte gratuitement"
+      : "Créer mon compte";
 
   return (
     <div className="space-y-6">
       <form action={formAction} className="space-y-4">
+        <input type="hidden" name="category" value={category} />
+        <input type="hidden" name="plan" value={plan} />
+
+        {isInstitution && (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="institution_name" className="text-[#0B1D2A]">
+                Nom de l&apos;institution
+              </Label>
+              <Input
+                id="institution_name"
+                placeholder="Ex. Fonds d'Appui aux PME"
+                className="border-[#0B1D2A]/15 bg-white"
+                {...register("institution_name")}
+              />
+              {errors.institution_name && (
+                <p className="text-sm text-destructive">
+                  {errors.institution_name.message}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="institution_type" className="text-[#0B1D2A]">
+                Type d&apos;institution
+              </Label>
+              <select
+                id="institution_type"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                {...register("institution_type")}
+              >
+                <option value="">Sélectionner…</option>
+                {INSTITUTION_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {institutionTypeLabels[type]}
+                  </option>
+                ))}
+              </select>
+              {errors.institution_type && (
+                <p className="text-sm text-destructive">
+                  {errors.institution_type.message}
+                </p>
+              )}
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="city" className="text-[#0B1D2A]">
+                  Ville
+                </Label>
+                <Input
+                  id="city"
+                  placeholder="Abidjan"
+                  className="border-[#0B1D2A]/15 bg-white"
+                  {...register("city")}
+                />
+                {errors.city && (
+                  <p className="text-sm text-destructive">{errors.city.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="country" className="text-[#0B1D2A]">
+                  Pays
+                </Label>
+                <Input
+                  id="country"
+                  placeholder="Côte d'Ivoire"
+                  className="border-[#0B1D2A]/15 bg-white"
+                  {...register("country")}
+                />
+                {errors.country && (
+                  <p className="text-sm text-destructive">{errors.country.message}</p>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
         <div className="space-y-2">
           <Label htmlFor="full_name" className="text-[#0B1D2A]">
-            Nom complet du dirigeant
+            {isInstitution ? "Nom du responsable" : "Nom complet du dirigeant"}
           </Label>
           <Input
             id="full_name"
@@ -77,6 +205,20 @@ export function RegisterForm() {
             <p className="text-sm text-destructive">{errors.email.message}</p>
           )}
         </div>
+
+        {isInstitution && (
+          <div className="space-y-2">
+            <Label htmlFor="phone" className="text-[#0B1D2A]">
+              Téléphone (optionnel)
+            </Label>
+            <Input
+              id="phone"
+              placeholder="+225 07 00 00 00 00"
+              className="border-[#0B1D2A]/15 bg-white"
+              {...register("phone")}
+            />
+          </div>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
@@ -156,28 +298,32 @@ export function RegisterForm() {
           className="w-full bg-[#00BFA6] text-base font-semibold text-white hover:bg-[#00a892]"
           disabled={pending}
         >
-          {pending ? "Création du compte..." : "Créer mon compte gratuitement"}
+          {pending ? "Création du compte..." : submitLabel}
         </Button>
       </form>
 
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-[#0B1D2A]/10" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-white px-2 text-muted-foreground">ou</span>
-        </div>
-      </div>
+      {category === "pme" && (
+        <>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-[#0B1D2A]/10" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-2 text-muted-foreground">ou</span>
+            </div>
+          </div>
 
-      <form action={signInWithGoogleAction}>
-        <Button
-          type="submit"
-          variant="outline"
-          className="w-full border-[#0B1D2A]/15 bg-white text-[#0B1D2A] hover:bg-[#F5F7FA]"
-        >
-          Continuer avec Google
-        </Button>
-      </form>
+          <form action={signInWithGoogleAction}>
+            <Button
+              type="submit"
+              variant="outline"
+              className="w-full border-[#0B1D2A]/15 bg-white text-[#0B1D2A] hover:bg-[#F5F7FA]"
+            >
+              Continuer avec Google
+            </Button>
+          </form>
+        </>
+      )}
 
       <p className="text-center text-sm text-muted-foreground">
         Déjà un compte ?{" "}

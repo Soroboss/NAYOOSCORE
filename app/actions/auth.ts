@@ -10,10 +10,16 @@ import {
   getPmeRedirectPath,
   getRedirectPathForRole,
 } from "@/lib/auth";
-import { createInsforgeServerClient } from "@/lib/insforge-server";
+import { createInsforgeServerClient, createInsforgeAdminClient } from "@/lib/insforge-server";
 import { upsertProfile } from "@/lib/profiles";
 import type { UserRole } from "@/lib/constants";
 import { getUserDisplayName } from "@/lib/user-display";
+import { getPlanPrice } from "@/lib/pricing";
+import {
+  isSignupCategory,
+  isValidPlanForCategory,
+  type SignupCategory,
+} from "@/lib/signup-flow";
 
 export type AuthActionState = {
   success: boolean;
@@ -94,9 +100,110 @@ export async function signUpAction(
   const full_name = String(formData.get("full_name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  const categoryRaw = String(formData.get("category") ?? "pme");
+  const plan = String(formData.get("plan") ?? "");
 
   if (!full_name || !email || !password) {
     return { success: false, error: "Tous les champs sont requis." };
+  }
+
+  if (!isSignupCategory(categoryRaw) || !isValidPlanForCategory(categoryRaw, plan)) {
+    return { success: false, error: "Parcours d'inscription invalide." };
+  }
+
+  const category = categoryRaw as SignupCategory;
+
+  if (category === "institution") {
+    const institution_name = String(formData.get("institution_name") ?? "").trim();
+    const institution_type = String(formData.get("institution_type") ?? "");
+    const country = String(formData.get("country") ?? "").trim();
+    const city = String(formData.get("city") ?? "").trim();
+    const phone = String(formData.get("phone") ?? "").trim() || null;
+
+    if (!institution_name || !institution_type || !country || !city) {
+      return { success: false, error: "Informations institution incomplètes." };
+    }
+
+    const client = createInsforgeServerClient();
+    const { data, error } = await client.auth.signUp({
+      email,
+      password,
+      name: full_name,
+      redirectTo: `${getAppUrl()}/login`,
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    if (data?.requireEmailVerification) {
+      return {
+        success: true,
+        message:
+          "Compte créé. Vérifiez votre email pour activer votre accès institution.",
+      };
+    }
+
+    if (!data?.accessToken || !data?.refreshToken || !data.user) {
+      return {
+        success: true,
+        message: "Compte créé. Connectez-vous pour accéder à votre espace.",
+      };
+    }
+
+    await setAuthCookies(data.accessToken, data.refreshToken);
+    await upsertProfile(
+      {
+        id: data.user.id,
+        full_name,
+        email,
+        role: "INSTITUTION_ADMIN",
+        phone,
+      },
+      data.accessToken
+    );
+
+    const admin = createInsforgeAdminClient();
+    const { data: institution, error: instError } = await admin.database
+      .from("institutions")
+      .insert({
+        name: institution_name,
+        type: institution_type,
+        country,
+        city,
+        email,
+        phone,
+        status: "active",
+      })
+      .select("id")
+      .single();
+
+    if (instError || !institution) {
+      return {
+        success: false,
+        error: instError?.message ?? "Impossible de créer l'institution.",
+      };
+    }
+
+    const { error: linkError } = await admin.database.from("institution_users").insert({
+      institution_id: institution.id,
+      user_id: data.user.id,
+      role: "INSTITUTION_ADMIN",
+    });
+
+    if (linkError) {
+      return { success: false, error: linkError.message };
+    }
+
+    const monthlyAmount = getPlanPrice(plan);
+    await admin.database.from("subscriptions").insert({
+      institution_id: institution.id,
+      plan_name: plan,
+      status: "active",
+      amount: monthlyAmount,
+    });
+
+    redirect("/institution/dashboard");
   }
 
   const client = createInsforgeServerClient();

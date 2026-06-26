@@ -24,8 +24,8 @@ export function CtaSection() {
             size="lg"
             className="bg-white text-[#0B1D2A] hover:bg-white/90"
           >
-            <Link href="/register">
-              Commencer gratuitement
+            <Link href="/signup">
+              Commencer maintenant
               <ArrowRight className="ml-2 size-4" />
             </Link>
           </Button>

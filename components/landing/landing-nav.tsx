@@ -6,6 +6,7 @@ const navLinks = [
   { href: "#fonctionnalites", label: "Fonctionnalités" },
   { href: "#comment-ca-marche", label: "Comment ça marche" },
   { href: "#pour-qui", label: "Pour qui" },
+  { href: "#tarifs", label: "Tarifs" },
   { href: "#score", label: "Le score" },
   { href: "#faq", label: "FAQ" },
 ];
@@ -40,7 +41,7 @@ export function LandingNav() {
             size="sm"
             className="bg-[#00BFA6] text-white hover:bg-[#00a892]"
           >
-            <Link href="/register">Inscription PME</Link>
+            <Link href="/signup">S&apos;inscrire</Link>
           </Button>
         </div>
       </div>

@@ -6,6 +6,7 @@ import { FeaturesSection } from "@/components/landing/features-section";
 import { HeroSection } from "@/components/landing/hero-section";
 import { HowItWorksSection } from "@/components/landing/how-it-works-section";
 import { LandingNav } from "@/components/landing/landing-nav";
+import { PricingSection } from "@/components/landing/pricing-section";
 import { ScoringSection } from "@/components/landing/scoring-section";
 
 export default function HomePage() {
@@ -17,6 +18,7 @@ export default function HomePage() {
         <FeaturesSection />
         <HowItWorksSection />
         <AudiencesSection />
+        <PricingSection />
         <ScoringSection />
         <FaqSection />
         <CtaSection />

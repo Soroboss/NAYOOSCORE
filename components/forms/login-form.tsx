@@ -94,7 +94,7 @@ export function LoginForm() {
         </Link>
         <p>
           Pas encore de compte ?{" "}
-          <Link href="/register" className="font-semibold text-[#0077B6] hover:underline">
+          <Link href="/signup" className="font-semibold text-[#0077B6] hover:underline">
             S&apos;inscrire
           </Link>
         </p>
