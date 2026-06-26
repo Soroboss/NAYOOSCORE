@@ -63,6 +63,11 @@ export function SignupEmailVerificationStep({
           <strong className="text-[#0B1D2A]">{pending.email}</strong>. Saisissez-le
           ci-dessous pour activer votre compte et accéder à votre espace.
         </p>
+        {category === "institution" && pending.institution_name ? (
+          <p className="mt-2 text-sm text-[#0B1D2A]">
+            Institution : <strong>{pending.institution_name}</strong>
+          </p>
+        ) : null}
         <p className="mt-2 text-xs text-muted-foreground">
           Votre mot de passe a déjà été enregistré à l&apos;étape précédente.
         </p>

@@ -100,18 +100,30 @@ export function RegisterForm({ category, plan }: RegisterFormProps) {
 
   useEffect(() => {
     if (!state.needsEmailVerification || !state.email) return;
+
+    const fromServer = state.pendingSignup;
     const values = getValues();
-    setPendingSignup({
+
+    const pending: SignupPendingData = {
       email: state.email,
-      full_name: values.full_name,
-      institution_name: values.institution_name,
-      institution_type: values.institution_type,
-      country: values.country,
-      city: values.city,
-      phone: values.phone,
-    });
+      full_name: fromServer?.full_name || values.full_name,
+      institution_name:
+        fromServer?.institution_name || values.institution_name || "",
+      institution_type:
+        fromServer?.institution_type || values.institution_type || "",
+      country: fromServer?.country || values.country || "",
+      city: fromServer?.city || values.city || "",
+      phone: fromServer?.phone || values.phone,
+    };
+
+    setPendingSignup(pending);
     setStep("verify");
-  }, [state.needsEmailVerification, state.email, getValues]);
+  }, [
+    state.needsEmailVerification,
+    state.email,
+    state.pendingSignup,
+    getValues,
+  ]);
 
   if (step === "verify" && pendingSignup) {
     return (

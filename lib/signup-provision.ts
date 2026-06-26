@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { createInsforgeAdminClient } from "@/lib/insforge-server";
 import { upsertProfile } from "@/lib/profiles";
 import type { UserRole } from "@/lib/constants";
@@ -36,18 +37,20 @@ export async function provisionInstitutionSignup(data: InstitutionSignupData) {
 
   let institutionId = existingLink?.institution_id ?? null;
 
+  const institutionPayload = {
+    name: data.institution_name.trim(),
+    type: data.institution_type,
+    country: data.country.trim(),
+    city: data.city.trim(),
+    email: data.email,
+    phone: data.phone,
+    status: "active" as const,
+  };
+
   if (!institutionId) {
     const { data: institution, error: instError } = await admin.database
       .from("institutions")
-      .insert({
-        name: data.institution_name,
-        type: data.institution_type,
-        country: data.country,
-        city: data.city,
-        email: data.email,
-        phone: data.phone,
-        status: "active",
-      })
+      .insert(institutionPayload)
       .select("id")
       .single();
 
@@ -80,6 +83,17 @@ export async function provisionInstitutionSignup(data: InstitutionSignupData) {
         `Institution créée mais abonnement impossible : ${subError.message}`
       );
     }
+  } else {
+    const { error: updateError } = await admin.database
+      .from("institutions")
+      .update(institutionPayload)
+      .eq("id", institutionId);
+
+    if (updateError) {
+      throw new Error(
+        `Impossible de mettre à jour l'institution : ${updateError.message}`
+      );
+    }
   }
 
   const { error: profileError } = await admin.database.from("profiles").upsert(
@@ -108,6 +122,9 @@ export async function provisionInstitutionSignup(data: InstitutionSignupData) {
     },
     data.accessToken
   );
+
+  revalidatePath("/admin/institutions");
+  revalidatePath("/institution/dashboard");
 
   return institutionId;
 }

@@ -32,12 +32,23 @@ import {
   provisionInstitutionSignup,
   provisionPmeSignup,
 } from "@/lib/signup-provision";
+import {
+  buildPendingSignupFromFormData,
+  clearPendingSignupCookie,
+  mergePendingSignup,
+  parseInstitutionFieldsFromFormData,
+  readPendingSignupCookie,
+  setPendingSignupCookie,
+  type PendingSignupData,
+} from "@/lib/signup-pending";
 import { z } from "zod";
 import {
   isSignupCategory,
   isValidPlanForCategory,
   type SignupCategory,
 } from "@/lib/signup-flow";
+
+export type SignupPendingPayload = Omit<PendingSignupData, "category" | "plan">;
 
 export type AuthActionState = {
   success: boolean;
@@ -46,6 +57,7 @@ export type AuthActionState = {
   needsEmailVerification?: boolean;
   email?: string;
   redirectTo?: string;
+  pendingSignup?: SignupPendingPayload;
 };
 
 const verifySignupSchema = z.object({
@@ -240,15 +252,25 @@ export async function signUpAction(
   const category = categoryRaw as SignupCategory;
 
   if (category === "institution") {
-    const institution_name = String(formData.get("institution_name") ?? "").trim();
-    const institution_type = String(formData.get("institution_type") ?? "");
-    const country = String(formData.get("country") ?? "").trim();
-    const city = String(formData.get("city") ?? "").trim();
+    const institution = parseInstitutionFieldsFromFormData(formData);
 
-    if (!institution_name || !institution_type || !country || !city) {
+    if (
+      !institution.institution_name ||
+      !institution.institution_type ||
+      !institution.country ||
+      !institution.city
+    ) {
       return { success: false, error: "Informations institution incomplètes." };
     }
   }
+
+  const pendingSignup = buildPendingSignupFromFormData(
+    formData,
+    category,
+    plan,
+    full_name,
+    email
+  );
 
   const client = createInsforgeServerClient();
   const { data, error } = await client.auth.signUp({
@@ -263,11 +285,21 @@ export async function signUpAction(
   }
 
   if (data?.requireEmailVerification) {
+    await setPendingSignupCookie(pendingSignup);
     return {
       success: true,
       needsEmailVerification: true,
       email,
       message: getSignupVerificationMessage(),
+      pendingSignup: {
+        email: pendingSignup.email,
+        full_name: pendingSignup.full_name,
+        institution_name: pendingSignup.institution_name,
+        institution_type: pendingSignup.institution_type,
+        country: pendingSignup.country,
+        city: pendingSignup.city,
+        phone: pendingSignup.phone ?? undefined,
+      },
     };
   }
 
@@ -292,13 +324,14 @@ export async function signUpAction(
         accessToken: data.accessToken,
         full_name,
         email,
-        phone: String(formData.get("phone") ?? "").trim() || null,
-        institution_name: String(formData.get("institution_name") ?? "").trim(),
-        institution_type: String(formData.get("institution_type") ?? ""),
-        country: String(formData.get("country") ?? "").trim(),
-        city: String(formData.get("city") ?? "").trim(),
+        phone: pendingSignup.phone ?? null,
+        institution_name: pendingSignup.institution_name!,
+        institution_type: pendingSignup.institution_type!,
+        country: pendingSignup.country!,
+        city: pendingSignup.city!,
         plan,
       });
+      await clearPendingSignupCookie();
       redirectTo = "/institution/dashboard";
     } else {
       await provisionPmeSignup({
@@ -354,21 +387,41 @@ export async function verifySignupEmailAction(
   }
 
   const data = parsed.data;
+  const cookiePending = await readPendingSignupCookie();
+  const fromForm: PendingSignupData = {
+    category: data.category,
+    plan: data.plan,
+    email: data.email,
+    full_name: data.full_name,
+    institution_name: data.institution_name?.trim(),
+    institution_type: data.institution_type?.trim(),
+    country: data.country?.trim(),
+    city: data.city?.trim(),
+    phone: data.phone?.trim() || null,
+  };
+  const pending = mergePendingSignup(fromForm, cookiePending);
 
   if (
-    data.category === "institution" &&
-    (!data.institution_name || !data.institution_type || !data.country || !data.city)
+    pending.category === "institution" &&
+    (!pending.institution_name ||
+      !pending.institution_type ||
+      !pending.country ||
+      !pending.city)
   ) {
-    return { success: false, error: "Informations institution incomplètes." };
+    return {
+      success: false,
+      error:
+        "Informations institution incomplètes. Revenez à l'étape précédente et renseignez le nom de votre structure.",
+    };
   }
 
-  if (!isValidPlanForCategory(data.category, data.plan)) {
+  if (!isValidPlanForCategory(pending.category, pending.plan)) {
     return { success: false, error: "Forfait invalide." };
   }
 
   const client = createInsforgeServerClient();
   const { data: verifyData, error } = await client.auth.verifyEmail({
-    email: data.email,
+    email: pending.email,
     otp: data.code.trim(),
   });
 
@@ -387,27 +440,29 @@ export async function verifySignupEmailAction(
 
   let redirectTo: string;
   try {
-    if (data.category === "institution") {
+    if (pending.category === "institution") {
       await provisionInstitutionSignup({
         userId: verifyData.user.id,
         accessToken: verifyData.accessToken,
-        full_name: data.full_name,
-        email: data.email,
-        phone: data.phone?.trim() || null,
-        institution_name: data.institution_name!,
-        institution_type: data.institution_type!,
-        country: data.country!,
-        city: data.city!,
-        plan: data.plan,
+        full_name: pending.full_name,
+        email: pending.email,
+        phone: pending.phone ?? null,
+        institution_name: pending.institution_name!,
+        institution_type: pending.institution_type!,
+        country: pending.country!,
+        city: pending.city!,
+        plan: pending.plan,
       });
+      await clearPendingSignupCookie();
       redirectTo = "/institution/dashboard";
     } else {
       await provisionPmeSignup({
         userId: verifyData.user.id,
         accessToken: verifyData.accessToken,
-        full_name: data.full_name,
-        email: data.email,
+        full_name: pending.full_name,
+        email: pending.email,
       });
+      await clearPendingSignupCookie();
       redirectTo = await getPmeRedirectPath(verifyData.user.id);
     }
   } catch (e) {
