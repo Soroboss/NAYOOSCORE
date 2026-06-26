@@ -19,8 +19,16 @@ export function EmployeeForm() {
           <Input id="full_name" name="full_name" required />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="role">Poste</Label>
-          <Input id="role" name="role" />
+          <Label htmlFor="role">Poste / fonction</Label>
+          <Input id="role" name="role" placeholder="Commercial, comptable…" />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="monthly_salary">Salaire mensuel (FCFA)</Label>
+          <Input id="monthly_salary" name="monthly_salary" type="number" min={0} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="phone">Téléphone</Label>
+          <Input id="phone" name="phone" placeholder="+225…" />
         </div>
         <div className="space-y-2">
           <Label htmlFor="hire_date">Date d&apos;embauche</Label>
@@ -30,7 +38,7 @@ export function EmployeeForm() {
       {state.error && <p className="text-sm text-destructive">{state.error}</p>}
       {state.message && <p className="text-sm text-[#00BFA6]">{state.message}</p>}
       <Button type="submit" className="bg-[#00BFA6] text-white hover:bg-[#00a892]" disabled={pending}>
-        {pending ? "Ajout..." : "Ajouter"}
+        {pending ? "Ajout..." : "Ajouter l'employé"}
       </Button>
     </form>
   );

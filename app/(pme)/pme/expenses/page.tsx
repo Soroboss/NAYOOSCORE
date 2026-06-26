@@ -1,14 +1,7 @@
 import { requirePmeCompany } from "@/app/actions/company";
 import { ExpenseForm } from "@/components/pme/expense-form";
 import { getAuthedServerClient } from "@/lib/insforge-server";
-
-function formatFcfa(value: number) {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "XOF",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
+import { formatXof } from "@/lib/format";
 
 export default async function PmeExpensesPage() {
   const { company } = await requirePmeCompany();
@@ -19,13 +12,15 @@ export default async function PmeExpensesPage() {
     .select("*")
     .eq("company_id", company.id)
     .order("expense_date", { ascending: false })
-    .limit(20);
+    .limit(30);
 
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#0B1D2A]">Dépenses</h1>
-        <p className="text-muted-foreground">Suivez vos charges et coûts.</p>
+        <h1 className="text-2xl font-bold text-[#0B1D2A]">Dépenses & sorties</h1>
+        <p className="text-muted-foreground">
+          Salaires, primes, marketing, terrain, achats — toutes vos charges.
+        </p>
       </div>
 
       <ExpenseForm />
@@ -47,7 +42,7 @@ export default async function PmeExpensesPage() {
                   </p>
                 </div>
                 <p className="font-semibold text-[#0077B6]">
-                  {formatFcfa(Number(expense.amount))}
+                  {formatXof(Number(expense.amount))}
                 </p>
               </div>
             ))

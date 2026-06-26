@@ -14,6 +14,8 @@ import {
   Sparkles,
   Landmark,
   Package,
+  Megaphone,
+  MapPin,
 } from "lucide-react";
 
 export const PME_MODULE_KEYS = [
@@ -27,6 +29,8 @@ export const PME_MODULE_KEYS = [
   "suppliers",
   "employees",
   "inventory",
+  "marketing",
+  "field_ops",
   "documents",
   "score",
   "recommendations",
@@ -67,6 +71,17 @@ export const CORE_PME_MODULES: PmeModuleKey[] = [
   "funding_request",
 ];
 
+/** Modules financiers et RH communs à toute PME */
+export const OPERATIONAL_PME_MODULES: PmeModuleKey[] = [
+  "sales",
+  "expenses",
+  "treasury",
+  "customers",
+  "employees",
+  "marketing",
+  "field_ops",
+];
+
 export const PME_MODULE_META: Record<
   PmeModuleKey,
   { title: string; href: string; icon: LucideIcon; group: string }
@@ -81,6 +96,8 @@ export const PME_MODULE_META: Record<
   suppliers: { title: "Fournisseurs", href: "/pme/suppliers", icon: Truck, group: "Gestion" },
   employees: { title: "Employés", href: "/pme/employees", icon: Briefcase, group: "Gestion" },
   inventory: { title: "Stocks", href: "/pme/inventory", icon: Package, group: "Gestion" },
+  marketing: { title: "Marketing", href: "/pme/marketing", icon: Megaphone, group: "Opérations" },
+  field_ops: { title: "Actions terrain", href: "/pme/field-ops", icon: MapPin, group: "Opérations" },
   documents: { title: "Documents", href: "/pme/documents", icon: FolderOpen, group: "Gestion" },
   score: { title: "Mon score", href: "/pme/score", icon: LineChart, group: "Finançabilité" },
   recommendations: { title: "Recommandations", href: "/pme/recommendations", icon: Sparkles, group: "Finançabilité" },
@@ -88,17 +105,17 @@ export const PME_MODULE_META: Record<
 };
 
 export const BUSINESS_TYPES: BusinessTypeConfig[] = [
-  { id: "retail_commerce", label: "Commerce / Boutique", description: "Vente de produits, stocks et clients.", modules: [...CORE_PME_MODULES, "sales", "expenses", "treasury", "customers", "suppliers", "inventory", "employees"], dependencies: { treasury: ["sales", "expenses"], inventory: ["sales"] } },
-  { id: "services", label: "Services / Conseil", description: "Prestations et suivi clients.", modules: [...CORE_PME_MODULES, "sales", "expenses", "treasury", "customers", "employees"], dependencies: { treasury: ["sales", "expenses"] } },
-  { id: "manufacturing", label: "Production / Industrie", description: "Fabrication et matières premières.", modules: [...CORE_PME_MODULES, "sales", "expenses", "treasury", "customers", "suppliers", "inventory", "employees"], dependencies: { inventory: ["suppliers"], treasury: ["sales", "expenses"] } },
-  { id: "agriculture", label: "Agriculture / Agro", description: "Production agricole et intrants.", modules: [...CORE_PME_MODULES, "sales", "expenses", "treasury", "suppliers", "inventory", "employees"], dependencies: { inventory: ["suppliers"] } },
-  { id: "restaurant_hospitality", label: "Restauration / Hôtellerie", description: "Service et approvisionnement.", modules: [...CORE_PME_MODULES, "sales", "expenses", "treasury", "suppliers", "inventory", "employees"], dependencies: { inventory: ["suppliers"], treasury: ["sales", "expenses"] } },
-  { id: "technology", label: "Technologie / Digital", description: "Produits ou services numériques.", modules: [...CORE_PME_MODULES, "sales", "expenses", "treasury", "customers", "employees"], dependencies: { treasury: ["sales", "expenses"] } },
-  { id: "transport_logistics", label: "Transport / Logistique", description: "Flotte et charges opérationnelles.", modules: [...CORE_PME_MODULES, "sales", "expenses", "treasury", "customers", "suppliers", "employees"], dependencies: { treasury: ["sales", "expenses"] } },
-  { id: "construction", label: "BTP / Construction", description: "Chantiers et sous-traitants.", modules: [...CORE_PME_MODULES, "sales", "expenses", "treasury", "customers", "suppliers", "employees"], dependencies: { treasury: ["sales", "expenses"] } },
-  { id: "health_wellness", label: "Santé / Bien-être", description: "Cabinet et équipe.", modules: [...CORE_PME_MODULES, "sales", "expenses", "treasury", "customers", "employees"], dependencies: { treasury: ["sales", "expenses"] } },
-  { id: "education_training", label: "Éducation / Formation", description: "Formations et inscriptions.", modules: [...CORE_PME_MODULES, "sales", "expenses", "treasury", "customers", "employees"], dependencies: { treasury: ["sales", "expenses"] } },
-  { id: "artisan_craft", label: "Artisanat", description: "Production artisanale et ventes.", modules: [...CORE_PME_MODULES, "sales", "expenses", "treasury", "customers", "suppliers", "inventory"], dependencies: { inventory: ["suppliers"] } },
+  { id: "retail_commerce", label: "Commerce / Boutique", description: "Vente de produits, stocks et clients.", modules: [...CORE_PME_MODULES, ...OPERATIONAL_PME_MODULES, "suppliers", "inventory"], dependencies: { treasury: ["sales", "expenses"], inventory: ["sales"] } },
+  { id: "services", label: "Services / Conseil", description: "Prestations et suivi clients.", modules: [...CORE_PME_MODULES, ...OPERATIONAL_PME_MODULES], dependencies: { treasury: ["sales", "expenses"] } },
+  { id: "manufacturing", label: "Production / Industrie", description: "Fabrication et matières premières.", modules: [...CORE_PME_MODULES, ...OPERATIONAL_PME_MODULES, "suppliers", "inventory"], dependencies: { inventory: ["suppliers"], treasury: ["sales", "expenses"] } },
+  { id: "agriculture", label: "Agriculture / Agro", description: "Production agricole et intrants.", modules: [...CORE_PME_MODULES, ...OPERATIONAL_PME_MODULES, "suppliers", "inventory"], dependencies: { inventory: ["suppliers"] } },
+  { id: "restaurant_hospitality", label: "Restauration / Hôtellerie", description: "Service et approvisionnement.", modules: [...CORE_PME_MODULES, ...OPERATIONAL_PME_MODULES, "suppliers", "inventory"], dependencies: { inventory: ["suppliers"], treasury: ["sales", "expenses"] } },
+  { id: "technology", label: "Technologie / Digital", description: "Produits ou services numériques.", modules: [...CORE_PME_MODULES, ...OPERATIONAL_PME_MODULES], dependencies: { treasury: ["sales", "expenses"] } },
+  { id: "transport_logistics", label: "Transport / Logistique", description: "Flotte et charges opérationnelles.", modules: [...CORE_PME_MODULES, ...OPERATIONAL_PME_MODULES, "suppliers"], dependencies: { treasury: ["sales", "expenses"] } },
+  { id: "construction", label: "BTP / Construction", description: "Chantiers et sous-traitants.", modules: [...CORE_PME_MODULES, ...OPERATIONAL_PME_MODULES, "suppliers"], dependencies: { treasury: ["sales", "expenses"] } },
+  { id: "health_wellness", label: "Santé / Bien-être", description: "Cabinet et équipe.", modules: [...CORE_PME_MODULES, ...OPERATIONAL_PME_MODULES], dependencies: { treasury: ["sales", "expenses"] } },
+  { id: "education_training", label: "Éducation / Formation", description: "Formations et inscriptions.", modules: [...CORE_PME_MODULES, ...OPERATIONAL_PME_MODULES], dependencies: { treasury: ["sales", "expenses"] } },
+  { id: "artisan_craft", label: "Artisanat", description: "Production artisanale et ventes.", modules: [...CORE_PME_MODULES, ...OPERATIONAL_PME_MODULES, "suppliers", "inventory"], dependencies: { inventory: ["suppliers"] } },
   { id: "other", label: "Autre activité", description: "Tous les modules disponibles.", modules: [...PME_MODULE_KEYS], dependencies: { treasury: ["sales", "expenses"], inventory: ["sales"] } },
 ];
 
@@ -118,7 +135,7 @@ export function resolveEnabledModules(businessType: BusinessTypeId) {
 }
 
 export function buildPmeNavFromModules(enabledKeys: PmeModuleKey[]) {
-  const groupOrder = ["Accueil", "Finances", "Gestion", "Finançabilité"];
+  const groupOrder = ["Accueil", "Finances", "Gestion", "Opérations", "Finançabilité"];
   const groups = new Map<string, PmeModuleKey[]>();
   for (const key of enabledKeys) {
     const meta = PME_MODULE_META[key];

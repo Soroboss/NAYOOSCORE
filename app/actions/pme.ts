@@ -13,13 +13,21 @@ const saleSchema = z.object({
   amount: z.coerce.number().positive("Montant invalide"),
   customer_name: z.string().min(2),
   sale_date: z.string().min(1),
+  sale_type: z.enum(["product", "service", "subscription", "mixed"]),
+  item_name: z.string().optional(),
+  quantity: z.coerce.number().positive().optional(),
+  unit: z.string().optional(),
+  payment_method: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 const expenseSchema = z.object({
   amount: z.coerce.number().positive("Montant invalide"),
   category: z.string().min(2),
+  expense_type: z.string().optional(),
   description: z.string().min(2),
   expense_date: z.string().min(1),
+  payment_method: z.string().optional(),
 });
 
 export async function addSaleAction(
@@ -31,6 +39,12 @@ export async function addSaleAction(
     amount: formData.get("amount"),
     customer_name: formData.get("customer_name"),
     sale_date: formData.get("sale_date"),
+    sale_type: formData.get("sale_type") || "service",
+    item_name: formData.get("item_name") || undefined,
+    quantity: formData.get("quantity") || undefined,
+    unit: formData.get("unit") || undefined,
+    payment_method: formData.get("payment_method") || undefined,
+    notes: formData.get("notes") || undefined,
   });
 
   if (!parsed.success) {
@@ -43,6 +57,12 @@ export async function addSaleAction(
     amount: parsed.data.amount,
     customer_name: parsed.data.customer_name,
     sale_date: parsed.data.sale_date,
+    sale_type: parsed.data.sale_type,
+    item_name: parsed.data.item_name ?? null,
+    quantity: parsed.data.quantity ?? 1,
+    unit: parsed.data.unit ?? null,
+    payment_method: parsed.data.payment_method ?? null,
+    notes: parsed.data.notes ?? null,
   });
 
   if (error) return { success: false, error: error.message };
@@ -59,8 +79,10 @@ export async function addExpenseAction(
   const parsed = expenseSchema.safeParse({
     amount: formData.get("amount"),
     category: formData.get("category"),
+    expense_type: formData.get("expense_type") || formData.get("category"),
     description: formData.get("description"),
     expense_date: formData.get("expense_date"),
+    payment_method: formData.get("payment_method") || undefined,
   });
 
   if (!parsed.success) {
@@ -72,8 +94,10 @@ export async function addExpenseAction(
     company_id: company.id,
     amount: parsed.data.amount,
     category: parsed.data.category,
+    expense_type: parsed.data.expense_type ?? parsed.data.category,
     description: parsed.data.description,
     expense_date: parsed.data.expense_date,
+    payment_method: parsed.data.payment_method ?? null,
   });
 
   if (error) return { success: false, error: error.message };
@@ -122,6 +146,41 @@ const employeeSchema = z.object({
   full_name: z.string().min(2),
   role: z.string().optional(),
   hire_date: z.string().optional(),
+  monthly_salary: z.coerce.number().nonnegative().optional(),
+  phone: z.string().optional(),
+});
+
+const bonusSchema = z.object({
+  employee_id: z.string().uuid(),
+  amount: z.coerce.number().positive(),
+  bonus_date: z.string().min(1),
+  bonus_type: z.string().min(2),
+  description: z.string().optional(),
+});
+
+const marketingSchema = z.object({
+  title: z.string().min(2),
+  channel: z.string().min(2),
+  budget_amount: z.coerce.number().nonnegative().optional(),
+  spent_amount: z.coerce.number().nonnegative().optional(),
+  start_date: z.string().min(1),
+  end_date: z.string().optional(),
+  status: z.string().min(2),
+  target_audience: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+const fieldActionSchema = z.object({
+  title: z.string().min(2),
+  location: z.string().optional(),
+  employee_id: z.string().uuid().optional().or(z.literal("")),
+  action_date: z.string().min(1),
+  end_date: z.string().optional(),
+  status: z.string().min(2),
+  objective: z.string().optional(),
+  cost: z.coerce.number().nonnegative().optional(),
+  revenue_generated: z.coerce.number().nonnegative().optional(),
+  notes: z.string().optional(),
 });
 
 const treasurySchema = z.object({
@@ -198,6 +257,8 @@ export async function addEmployeeAction(
     full_name: formData.get("full_name"),
     role: formData.get("role") || undefined,
     hire_date: formData.get("hire_date") || undefined,
+    monthly_salary: formData.get("monthly_salary") || undefined,
+    phone: formData.get("phone") || undefined,
   });
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Données invalides." };
@@ -208,10 +269,183 @@ export async function addEmployeeAction(
     full_name: parsed.data.full_name,
     role: parsed.data.role ?? null,
     hire_date: parsed.data.hire_date ?? null,
+    monthly_salary: parsed.data.monthly_salary ?? null,
+    phone: parsed.data.phone ?? null,
   });
   if (error) return { success: false, error: error.message };
   revalidatePath("/pme/employees");
   return { success: true, message: "Employé ajouté." };
+}
+
+export async function addEmployeeBonusAction(
+  _prev: PmeActionState,
+  formData: FormData
+): Promise<PmeActionState> {
+  const { company } = await requirePmeCompany();
+  const parsed = bonusSchema.safeParse({
+    employee_id: formData.get("employee_id"),
+    amount: formData.get("amount"),
+    bonus_date: formData.get("bonus_date"),
+    bonus_type: formData.get("bonus_type"),
+    description: formData.get("description") || undefined,
+  });
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Données invalides." };
+  }
+
+  const client = await getAuthedServerClient();
+  const { data: employee } = await client.database
+    .from("employees")
+    .select("full_name")
+    .eq("id", parsed.data.employee_id)
+    .eq("company_id", company.id)
+    .maybeSingle();
+
+  if (!employee) {
+    return { success: false, error: "Employé introuvable." };
+  }
+
+  const { error: bonusError } = await client.database.from("employee_bonuses").insert({
+    company_id: company.id,
+    employee_id: parsed.data.employee_id,
+    amount: parsed.data.amount,
+    bonus_date: parsed.data.bonus_date,
+    bonus_type: parsed.data.bonus_type,
+    description: parsed.data.description ?? null,
+  });
+
+  if (bonusError) return { success: false, error: bonusError.message };
+
+  await client.database.from("expenses").insert({
+    company_id: company.id,
+    amount: parsed.data.amount,
+    expense_date: parsed.data.bonus_date,
+    category: "Primes & bonus",
+    expense_type: "bonus",
+    description: `Prime — ${employee.full_name}${parsed.data.description ? ` : ${parsed.data.description}` : ""}`,
+  });
+
+  revalidatePath("/pme/employees");
+  revalidatePath("/pme/expenses");
+  revalidatePath("/pme/dashboard");
+  return { success: true, message: "Prime enregistrée." };
+}
+
+export async function addMarketingAction(
+  _prev: PmeActionState,
+  formData: FormData
+): Promise<PmeActionState> {
+  const { company } = await requirePmeCompany();
+  const parsed = marketingSchema.safeParse({
+    title: formData.get("title"),
+    channel: formData.get("channel"),
+    budget_amount: formData.get("budget_amount") || 0,
+    spent_amount: formData.get("spent_amount") || 0,
+    start_date: formData.get("start_date"),
+    end_date: formData.get("end_date") || undefined,
+    status: formData.get("status") || "planned",
+    target_audience: formData.get("target_audience") || undefined,
+    notes: formData.get("notes") || undefined,
+  });
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Données invalides." };
+  }
+
+  const client = await getAuthedServerClient();
+  const { error } = await client.database.from("marketing_actions").insert({
+    company_id: company.id,
+    ...parsed.data,
+    end_date: parsed.data.end_date ?? null,
+    target_audience: parsed.data.target_audience ?? null,
+    notes: parsed.data.notes ?? null,
+  });
+
+  if (error) return { success: false, error: error.message };
+
+  if ((parsed.data.spent_amount ?? 0) > 0) {
+    await client.database.from("expenses").insert({
+      company_id: company.id,
+      amount: parsed.data.spent_amount,
+      expense_date: parsed.data.start_date,
+      category: "Marketing & publicité",
+      expense_type: "marketing",
+      description: `Marketing — ${parsed.data.title}`,
+    });
+  }
+
+  revalidatePath("/pme/marketing");
+  revalidatePath("/pme/expenses");
+  revalidatePath("/pme/dashboard");
+  return { success: true, message: "Action marketing enregistrée." };
+}
+
+export async function addFieldAction(
+  _prev: PmeActionState,
+  formData: FormData
+): Promise<PmeActionState> {
+  const { company } = await requirePmeCompany();
+  const employeeId = String(formData.get("employee_id") ?? "");
+  const parsed = fieldActionSchema.safeParse({
+    title: formData.get("title"),
+    location: formData.get("location") || undefined,
+    employee_id: employeeId || undefined,
+    action_date: formData.get("action_date"),
+    end_date: formData.get("end_date") || undefined,
+    status: formData.get("status") || "planned",
+    objective: formData.get("objective") || undefined,
+    cost: formData.get("cost") || 0,
+    revenue_generated: formData.get("revenue_generated") || 0,
+    notes: formData.get("notes") || undefined,
+  });
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Données invalides." };
+  }
+
+  const client = await getAuthedServerClient();
+  const { error } = await client.database.from("field_actions").insert({
+    company_id: company.id,
+    title: parsed.data.title,
+    location: parsed.data.location ?? null,
+    employee_id: parsed.data.employee_id || null,
+    action_date: parsed.data.action_date,
+    end_date: parsed.data.end_date ?? null,
+    status: parsed.data.status,
+    objective: parsed.data.objective ?? null,
+    cost: parsed.data.cost ?? 0,
+    revenue_generated: parsed.data.revenue_generated ?? 0,
+    notes: parsed.data.notes ?? null,
+  });
+
+  if (error) return { success: false, error: error.message };
+
+  if ((parsed.data.cost ?? 0) > 0) {
+    await client.database.from("expenses").insert({
+      company_id: company.id,
+      amount: parsed.data.cost,
+      expense_date: parsed.data.action_date,
+      category: "Actions terrain & déplacements",
+      expense_type: "field",
+      description: `Terrain — ${parsed.data.title}`,
+    });
+  }
+
+  if ((parsed.data.revenue_generated ?? 0) > 0) {
+    await client.database.from("sales").insert({
+      company_id: company.id,
+      amount: parsed.data.revenue_generated,
+      sale_date: parsed.data.action_date,
+      customer_name: "Vente terrain",
+      sale_type: "service",
+      item_name: parsed.data.title,
+      notes: parsed.data.objective ?? null,
+    });
+  }
+
+  revalidatePath("/pme/field-ops");
+  revalidatePath("/pme/sales");
+  revalidatePath("/pme/expenses");
+  revalidatePath("/pme/dashboard");
+  return { success: true, message: "Action terrain enregistrée." };
 }
 
 export async function addTreasuryEntryAction(

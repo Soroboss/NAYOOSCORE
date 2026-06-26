@@ -1,14 +1,8 @@
 import { requirePmeCompany } from "@/app/actions/company";
 import { SaleForm } from "@/components/pme/sale-form";
 import { getAuthedServerClient } from "@/lib/insforge-server";
-
-function formatFcfa(value: number) {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "XOF",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
+import { formatXof } from "@/lib/format";
+import { labelFor, PAYMENT_METHODS, SALE_TYPES } from "@/lib/pme-catalog";
 
 export default async function PmeSalesPage() {
   const { company } = await requirePmeCompany();
@@ -19,13 +13,15 @@ export default async function PmeSalesPage() {
     .select("*")
     .eq("company_id", company.id)
     .order("sale_date", { ascending: false })
-    .limit(20);
+    .limit(30);
 
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#0B1D2A]">Ventes</h1>
-        <p className="text-muted-foreground">Saisie et suivi de vos ventes.</p>
+        <h1 className="text-2xl font-bold text-[#0B1D2A]">Ventes & recettes</h1>
+        <p className="text-muted-foreground">
+          Articles physiques, prestations, abonnements — toutes vos entrées d&apos;argent.
+        </p>
       </div>
 
       <SaleForm />
@@ -39,13 +35,25 @@ export default async function PmeSalesPage() {
             <p className="p-4 text-sm text-muted-foreground">Aucune vente enregistrée.</p>
           ) : (
             (sales ?? []).map((sale) => (
-              <div key={sale.id} className="flex items-center justify-between px-4 py-3 text-sm">
+              <div key={sale.id} className="flex flex-wrap items-start justify-between gap-2 px-4 py-3 text-sm">
                 <div>
                   <p className="font-medium">{sale.customer_name ?? "Client"}</p>
-                  <p className="text-muted-foreground">{sale.sale_date}</p>
+                  <p className="text-muted-foreground">
+                    {labelFor(SALE_TYPES, sale.sale_type)}
+                    {sale.item_name ? ` · ${sale.item_name}` : ""}
+                    {sale.quantity && Number(sale.quantity) !== 1
+                      ? ` · ${sale.quantity}${sale.unit ? ` ${sale.unit}` : ""}`
+                      : ""}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {sale.sale_date}
+                    {sale.payment_method
+                      ? ` · ${labelFor(PAYMENT_METHODS, sale.payment_method)}`
+                      : ""}
+                  </p>
                 </div>
                 <p className="font-semibold text-[#00BFA6]">
-                  {formatFcfa(Number(sale.amount))}
+                  {formatXof(Number(sale.amount))}
                 </p>
               </div>
             ))
