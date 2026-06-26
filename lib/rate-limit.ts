@@ -45,8 +45,8 @@ export function checkRateLimit(
 }
 
 export const RATE_LIMITS = {
-  auth: { limit: 10, windowMs: 15 * 60 * 1000 },
-  forgotPassword: { limit: 5, windowMs: 60 * 60 * 1000 },
+  auth: { limit: 25, windowMs: 15 * 60 * 1000 },
+  forgotPassword: { limit: 8, windowMs: 60 * 60 * 1000 },
   apiExport: { limit: 20, windowMs: 60 * 60 * 1000 },
 } as const;
 

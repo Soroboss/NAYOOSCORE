@@ -13,12 +13,6 @@ import { getClientIpFromRequest } from "@/lib/request-ip";
 import { securityHeaders } from "@/lib/security-headers";
 
 const protectedPrefixes = ["/admin", "/institution", "/pme"];
-const rateLimitedPrefixes = [
-  "/login",
-  "/register",
-  "/forgot-password",
-  "/api/auth",
-];
 
 function applySecurityHeaders(response: NextResponse) {
   for (const header of securityHeaders) {
@@ -27,48 +21,33 @@ function applySecurityHeaders(response: NextResponse) {
   return response;
 }
 
-function isRateLimitedPath(pathname: string): boolean {
-  return rateLimitedPrefixes.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
-  );
-}
-
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const accessToken = request.cookies.get(ACCESS_COOKIE)?.value;
   const emailVerifiedCookie = request.cookies.get(EMAIL_VERIFIED_COOKIE)?.value;
 
-  if (isRateLimitedPath(pathname)) {
+  // Limite uniquement les appels API auth (POST) — pas les visites des pages login/register.
+  // Les Server Actions appliquent déjà un rate limit sur les soumissions de formulaires.
+  if (pathname.startsWith("/api/auth") && request.method === "POST") {
     const ip = getClientIpFromRequest(request);
-    const limit =
-      pathname.startsWith("/forgot-password") ||
-      pathname.startsWith("/api/auth")
-        ? RATE_LIMITS.forgotPassword
-        : RATE_LIMITS.auth;
     const result = checkRateLimit(
-      `mw:${pathname}:${ip}`,
-      limit.limit,
-      limit.windowMs
+      `mw:api-auth:${ip}`,
+      RATE_LIMITS.forgotPassword.limit,
+      RATE_LIMITS.forgotPassword.windowMs
     );
 
     if (!result.success) {
-      if (pathname.startsWith("/api/")) {
-        return applySecurityHeaders(
-          NextResponse.json(
-            { error: rateLimitErrorMessage(result.retryAfter) },
-            {
-              status: 429,
-              headers: {
-                "Retry-After": String(result.retryAfter ?? 60),
-              },
-            }
-          )
-        );
-      }
-
-      const loginUrl = new URL("/login", request.url);
-      loginUrl.searchParams.set("error", "rate_limit");
-      return applySecurityHeaders(NextResponse.redirect(loginUrl));
+      return applySecurityHeaders(
+        NextResponse.json(
+          { error: rateLimitErrorMessage(result.retryAfter) },
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(result.retryAfter ?? 60),
+            },
+          }
+        )
+      );
     }
   }
 

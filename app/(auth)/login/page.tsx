@@ -44,6 +44,13 @@ export default async function LoginPage({ searchParams }: PageProps) {
         </p>
       )}
 
+      {params.error === "rate_limit" && (
+        <p className="mb-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          Trop de tentatives récentes. Attendez quelques minutes puis réessayez de vous
+          connecter.
+        </p>
+      )}
+
       <LoginForm />
     </div>
   );
