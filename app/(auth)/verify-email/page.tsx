@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { VerifyEmailForm } from "@/components/forms/verify-email-form";
-import { getAccessToken } from "@/lib/auth-cookies";
-import { isEmailVerifiedCookie } from "@/lib/auth-cookies";
-import { syncEmailVerifiedFromAuth } from "@/lib/auth";
+import {
+  getAccessToken,
+  isEmailVerifiedCookie,
+} from "@/lib/auth-cookies";
+import { getEmailVerifiedFromAuth } from "@/lib/auth";
 
 export default async function VerifyEmailPage() {
   const token = await getAccessToken();
@@ -11,8 +13,8 @@ export default async function VerifyEmailPage() {
   }
 
   let verified = await isEmailVerifiedCookie();
-  if (!verified) {
-    verified = await syncEmailVerifiedFromAuth(token);
+  if (!verified && token) {
+    verified = await getEmailVerifiedFromAuth(token);
   }
 
   if (verified) {

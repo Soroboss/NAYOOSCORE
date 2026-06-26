@@ -36,8 +36,7 @@ function isRateLimitedPath(pathname: string): boolean {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const accessToken = request.cookies.get(ACCESS_COOKIE)?.value;
-  const emailVerified =
-    request.cookies.get(EMAIL_VERIFIED_COOKIE)?.value === "1";
+  const emailVerifiedCookie = request.cookies.get(EMAIL_VERIFIED_COOKIE)?.value;
 
   if (isRateLimitedPath(pathname)) {
     const ip = getClientIpFromRequest(request);
@@ -112,7 +111,7 @@ export function middleware(request: NextRequest) {
   if (
     isProtected &&
     accessToken &&
-    !emailVerified &&
+    emailVerifiedCookie === "0" &&
     !pathname.startsWith("/verify-email")
   ) {
     const verifyUrl = new URL("/verify-email", request.url);

@@ -1,9 +1,5 @@
 import type { UserRole } from "@/lib/constants";
-import {
-  getAccessToken,
-  getRefreshToken,
-  setAuthCookies,
-} from "@/lib/auth-cookies";
+import { getAccessToken } from "@/lib/auth-cookies";
 import { createInsforgeServerClient } from "@/lib/insforge-server";
 import type { User } from "@/types/user";
 
@@ -67,20 +63,7 @@ export async function refreshSessionIfNeeded(): Promise<string | null> {
   const accessToken = await getAccessToken();
   if (accessToken) return accessToken;
 
-  const refreshToken = await getRefreshToken();
-  if (!refreshToken) return null;
-
-  const client = createInsforgeServerClient();
-  const { data, error } = await client.auth.refreshSession({ refreshToken });
-
-  if (error || !data?.accessToken || !data?.refreshToken) {
-    return null;
-  }
-
-  await setAuthCookies(
-    data.accessToken,
-    data.refreshToken,
-    data.user?.emailVerified ?? true
-  );
-  return data.accessToken;
+  // Ne pas rafraîchir la session depuis un Server Component :
+  // setAuthCookies() lève une erreur hors Server Action / Route Handler.
+  return null;
 }

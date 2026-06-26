@@ -24,10 +24,15 @@ export type AuthSession = {
   accessToken: string;
 };
 
-export async function syncEmailVerifiedFromAuth(accessToken: string): Promise<boolean> {
+export async function getEmailVerifiedFromAuth(accessToken: string): Promise<boolean> {
   const client = createInsforgeServerClient(accessToken);
   const { data } = await client.auth.getCurrentUser();
-  const verified = data?.user?.emailVerified ?? false;
+  return data?.user?.emailVerified ?? false;
+}
+
+/** À appeler uniquement depuis Server Actions / Route Handlers (écrit un cookie). */
+export async function syncEmailVerifiedFromAuth(accessToken: string): Promise<boolean> {
+  const verified = await getEmailVerifiedFromAuth(accessToken);
   await setEmailVerifiedCookie(verified);
   return verified;
 }
@@ -38,10 +43,8 @@ export async function requireVerifiedEmail(redirectPath?: string) {
     redirect("/login");
   }
 
-  let verified = await isEmailVerifiedCookie();
-  if (!verified) {
-    verified = await syncEmailVerifiedFromAuth(accessToken);
-  }
+  const verifiedFromCookie = await isEmailVerifiedCookie();
+  const verified = verifiedFromCookie || (await getEmailVerifiedFromAuth(accessToken));
 
   if (!verified) {
     const url = redirectPath
