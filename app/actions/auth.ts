@@ -10,8 +10,11 @@ import {
   getPmeRedirectPath,
   getRedirectPathForRole,
 } from "@/lib/auth";
-import { canAccessPme } from "@/lib/permissions";
-import { createInsforgeServerClient } from "@/lib/insforge-server";
+import {
+  canAccessInstitution,
+  canAccessPme,
+} from "@/lib/permissions";
+import { createInsforgeAdminClient, createInsforgeServerClient } from "@/lib/insforge-server";
 import { upsertProfile } from "@/lib/profiles";
 import type { UserRole } from "@/lib/constants";
 import { getUserDisplayName } from "@/lib/user-display";
@@ -23,6 +26,8 @@ import {
 import { getClientIpFromHeaders } from "@/lib/request-ip";
 import { forgotPasswordSchema, loginSchema, registerSchema } from "@/lib/validations";
 import { getAuthRedirectUrl, getSignupVerificationMessage } from "@/lib/auth-flow";
+import { getSafeRedirectPath } from "@/lib/auth-redirect";
+import { getInstitutionForUser } from "@/lib/institution-context";
 import {
   provisionInstitutionSignup,
   provisionPmeSignup,
@@ -60,6 +65,76 @@ function getAppUrl() {
   return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 }
 
+async function resolvePostAuthRedirect(
+  userId: string,
+  accessToken: string,
+  email: string,
+  displayName: string,
+  requestedRedirect?: string | null
+): Promise<string> {
+  const authedClient = createInsforgeServerClient(accessToken);
+  const { data: profile } = await authedClient.database
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .maybeSingle();
+
+  let role = (profile?.role as UserRole | undefined) ?? null;
+
+  const admin = createInsforgeAdminClient();
+  const { data: instLink } = await admin.database
+    .from("institution_users")
+    .select("role")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (instLink?.role && canAccessInstitution(instLink.role as UserRole)) {
+    if (!role || !canAccessInstitution(role)) {
+      role = instLink.role as UserRole;
+      await upsertProfile(
+        {
+          id: userId,
+          full_name: displayName,
+          email,
+          role,
+        },
+        accessToken
+      );
+    }
+  } else if (!profile && !role) {
+    await upsertProfile(
+      {
+        id: userId,
+        full_name: displayName,
+        email,
+        role: "PME_OWNER",
+      },
+      accessToken
+    );
+    role = "PME_OWNER";
+  }
+
+  const effectiveRole = role ?? (profile?.role as UserRole) ?? "PME_OWNER";
+
+  if (requestedRedirect) {
+    const safe = getSafeRedirectPath(requestedRedirect, "");
+    if (safe && canAccessRoute(effectiveRole, safe)) {
+      return safe;
+    }
+  }
+
+  if (canAccessInstitution(effectiveRole)) {
+    const institution = await getInstitutionForUser(userId, accessToken);
+    if (institution) return "/institution/dashboard";
+  }
+
+  if (canAccessPme(effectiveRole)) {
+    return getPmeRedirectPath(userId);
+  }
+
+  return getRedirectPathForRole(effectiveRole);
+}
+
 export async function signInAction(
   _prev: AuthActionState,
   formData: FormData
@@ -86,6 +161,7 @@ export async function signInAction(
   }
 
   const { email, password } = parsed.data;
+  const requestedRedirect = String(formData.get("redirect") ?? "").trim() || null;
 
   const client = createInsforgeServerClient();
   const { data, error } = await client.auth.signInWithPassword({
@@ -114,32 +190,15 @@ export async function signInAction(
     redirect("/verify-email");
   }
 
-  const authedClient = createInsforgeServerClient(data.accessToken);
-  const { data: profile } = await authedClient.database
-    .from("profiles")
-    .select("role")
-    .eq("id", data.user.id)
-    .maybeSingle();
+  const redirectPath = await resolvePostAuthRedirect(
+    data.user.id,
+    data.accessToken,
+    email,
+    getUserDisplayName(data.user, email),
+    requestedRedirect
+  );
 
-  const role = (profile?.role as UserRole | undefined) ?? "PME_OWNER";
-
-  if (!profile) {
-    await upsertProfile(
-      {
-        id: data.user.id,
-        full_name: getUserDisplayName(data.user, email),
-        email,
-        role: "PME_OWNER",
-      },
-      data.accessToken
-    );
-  }
-
-  const redirectPath = canAccessPme(role)
-    ? await getPmeRedirectPath(data.user.id)
-    : getRedirectPathForRole(role);
-
-  redirect(redirectPath);
+  return { success: true, redirectTo: redirectPath };
 }
 
 export async function signUpAction(
@@ -256,7 +315,7 @@ export async function signUpAction(
     };
   }
 
-  return { success: true, redirectTo };
+  redirect(redirectTo);
 }
 
 export async function verifySignupEmailAction(
@@ -357,7 +416,7 @@ export async function verifySignupEmailAction(
     };
   }
 
-  return { success: true, redirectTo };
+  redirect(redirectTo);
 }
 
 export async function resendSignupVerificationAction(

@@ -7,6 +7,7 @@ import {
 } from "@/lib/auth-cookies";
 import { createInsforgeServerClient } from "@/lib/insforge-server";
 import { getCompanyForUser } from "@/lib/company-context";
+import { getInstitutionForUser } from "@/lib/institution-context";
 import {
   getProfileByUserId,
   refreshSessionIfNeeded,
@@ -93,6 +94,10 @@ export function getRedirectPathForRole(role: UserRole): string {
 }
 
 export async function getLoginRedirectForUser(user: User): Promise<string> {
+  if (canAccessInstitution(user.role)) {
+    const institution = await getInstitutionForUser(user.id);
+    if (institution) return "/institution/dashboard";
+  }
   if (canAccessPme(user.role)) {
     return getPmeRedirectPath(user.id);
   }

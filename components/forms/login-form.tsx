@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,7 +13,11 @@ import { loginSchema, type LoginInput } from "@/lib/validations";
 
 const initialState: AuthActionState = { success: false };
 
-export function LoginForm() {
+type LoginFormProps = {
+  redirectTo?: string;
+};
+
+export function LoginForm({ redirectTo }: LoginFormProps) {
   const [state, formAction, pending] = useActionState(signInAction, initialState);
 
   const {
@@ -23,9 +27,15 @@ export function LoginForm() {
     resolver: zodResolver(loginSchema),
   });
 
+  useEffect(() => {
+    if (!state.redirectTo) return;
+    window.location.assign(state.redirectTo);
+  }, [state.redirectTo]);
+
   return (
     <div className="space-y-6">
       <form action={formAction} className="space-y-4">
+        {redirectTo && <input type="hidden" name="redirect" value={redirectTo} />}
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input
@@ -61,9 +71,9 @@ export function LoginForm() {
         <Button
           type="submit"
           className="w-full bg-[#00BFA6] text-white hover:bg-[#00a892]"
-          disabled={pending}
+          disabled={pending || Boolean(state.redirectTo)}
         >
-          {pending ? "Connexion..." : "Se connecter"}
+          {state.redirectTo ? "Redirection…" : pending ? "Connexion..." : "Se connecter"}
         </Button>
       </form>
 

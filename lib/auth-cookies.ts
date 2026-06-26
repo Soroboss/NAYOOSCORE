@@ -12,6 +12,9 @@ const authCookieOptions = {
   path: "/",
 };
 
+const ACCESS_MAX_AGE = 60 * 60 * 24 * 7;
+const REFRESH_MAX_AGE = 60 * 60 * 24 * 7;
+
 export async function setAuthCookies(
   accessToken: string,
   refreshToken: string,
@@ -20,11 +23,11 @@ export async function setAuthCookies(
   const cookieStore = await cookies();
   cookieStore.set(ACCESS_COOKIE, accessToken, {
     ...authCookieOptions,
-    maxAge: 60 * 15,
+    maxAge: ACCESS_MAX_AGE,
   });
   cookieStore.set(REFRESH_COOKIE, refreshToken, {
     ...authCookieOptions,
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: REFRESH_MAX_AGE,
   });
   cookieStore.set(EMAIL_VERIFIED_COOKIE, emailVerified ? "1" : "0", {
     ...authCookieOptions,

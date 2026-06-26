@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import {
   ACCESS_COOKIE,
   EMAIL_VERIFIED_COOKIE,
+  REFRESH_COOKIE,
 } from "@/lib/auth-cookies";
 import {
   checkRateLimit,
@@ -24,6 +25,7 @@ function applySecurityHeaders(response: NextResponse) {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const accessToken = request.cookies.get(ACCESS_COOKIE)?.value;
+  const refreshToken = request.cookies.get(REFRESH_COOKIE)?.value;
   const emailVerifiedCookie = request.cookies.get(EMAIL_VERIFIED_COOKIE)?.value;
 
   // Limite uniquement les appels API auth (POST) — pas les visites des pages login/register.
@@ -82,6 +84,12 @@ export function middleware(request: NextRequest) {
   );
 
   if (isProtected && !accessToken) {
+    if (refreshToken) {
+      const refreshUrl = new URL("/api/auth/refresh", request.url);
+      refreshUrl.searchParams.set("redirect", pathname);
+      return applySecurityHeaders(NextResponse.redirect(refreshUrl));
+    }
+
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return applySecurityHeaders(NextResponse.redirect(loginUrl));

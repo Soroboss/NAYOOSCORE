@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser, getLoginRedirectForUser } from "@/lib/auth";
+import { getAccessToken, getRefreshToken } from "@/lib/auth-cookies";
+import { getSafeRedirectPath } from "@/lib/auth-redirect";
 import { LoginForm } from "@/components/forms/login-form";
 
 type PageProps = {
@@ -8,16 +10,26 @@ type PageProps = {
     insforge_type?: string;
     insforge_error?: string;
     error?: string;
+    redirect?: string;
   }>;
 };
 
 export default async function LoginPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const requestedRedirect = getSafeRedirectPath(params.redirect, "");
+
   const user = await getCurrentUser();
   if (user) {
-    redirect(await getLoginRedirectForUser(user));
+    redirect(requestedRedirect || (await getLoginRedirectForUser(user)));
   }
 
-  const params = await searchParams;
+  const accessToken = await getAccessToken();
+  const refreshToken = await getRefreshToken();
+  if (!accessToken && refreshToken) {
+    redirect(
+      `/api/auth/refresh?redirect=${encodeURIComponent(requestedRedirect || "/")}`
+    );
+  }
   const emailVerifiedSuccess =
     params.insforge_status === "success" && params.insforge_type === "verify_email";
   const emailVerifyError =
@@ -51,7 +63,20 @@ export default async function LoginPage({ searchParams }: PageProps) {
         </p>
       )}
 
-      <LoginForm />
+      {params.error === "no_institution" && (
+        <p className="mb-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          Votre compte existe mais n&apos;est pas rattaché à une institution. Contactez le
+          support ou réinscrivez-vous.
+        </p>
+      )}
+
+      {params.error === "session_expired" && (
+        <p className="mb-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          Session expirée. Reconnectez-vous avec votre mot de passe.
+        </p>
+      )}
+
+      <LoginForm redirectTo={params.redirect} />
     </div>
   );
 }

@@ -62,8 +62,6 @@ export async function getProfileByUserId(userId: string): Promise<User | null> {
 export async function refreshSessionIfNeeded(): Promise<string | null> {
   const accessToken = await getAccessToken();
   if (accessToken) return accessToken;
-
-  // Ne pas rafraîchir la session depuis un Server Component :
-  // setAuthCookies() lève une erreur hors Server Action / Route Handler.
+  // Le rafraîchissement des cookies est géré par /api/auth/refresh (middleware / route).
   return null;
 }
