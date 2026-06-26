@@ -4,7 +4,8 @@ import {
   getAccessToken,
   isEmailVerifiedCookie,
 } from "@/lib/auth-cookies";
-import { getEmailVerifiedFromAuth } from "@/lib/auth";
+import { getEmailVerifiedFromAuth, getLoginRedirectForUser } from "@/lib/auth";
+import { createInsforgeServerClient } from "@/lib/insforge-server";
 
 export default async function VerifyEmailPage() {
   const token = await getAccessToken();
@@ -18,7 +19,20 @@ export default async function VerifyEmailPage() {
   }
 
   if (verified) {
-    redirect("/pme/dashboard");
+    const { getCurrentUser } = await import("@/lib/auth");
+    const user = await getCurrentUser();
+    if (user) {
+      redirect(await getLoginRedirectForUser(user));
+    }
+    redirect("/login");
+  }
+
+  const client = createInsforgeServerClient(token);
+  const { data } = await client.auth.getCurrentUser();
+  const email = data?.user?.email;
+
+  if (!email) {
+    redirect("/login");
   }
 
   return (
@@ -28,10 +42,10 @@ export default async function VerifyEmailPage() {
           Vérifiez votre email
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Sécurité du compte — confirmation requise avant accès
+          Saisissez le code à 6 chiffres reçu par email
         </p>
       </div>
-      <VerifyEmailForm />
+      <VerifyEmailForm email={email} />
     </div>
   );
 }

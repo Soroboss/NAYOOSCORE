@@ -1,11 +1,15 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { signUpAction, type AuthActionState } from "@/app/actions/auth";
+import {
+  SignupEmailVerificationStep,
+  type SignupPendingData,
+} from "@/components/forms/signup-email-verification-step";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -79,6 +83,8 @@ const passwordHints = ["8 caractères minimum", "Majuscule recommandée", "Chiff
 
 export function RegisterForm({ category, plan }: RegisterFormProps) {
   const [state, formAction, pending] = useActionState(signUpAction, initialState);
+  const [step, setStep] = useState<"register" | "verify">("register");
+  const [pendingSignup, setPendingSignup] = useState<SignupPendingData | null>(null);
   const isInstitution = category === "institution";
 
   const schema = buildSchema(category);
@@ -86,10 +92,37 @@ export function RegisterForm({ category, plan }: RegisterFormProps) {
 
   const {
     register,
+    getValues,
     formState: { errors },
   } = useForm<RegisterFormInput>({
     resolver: zodResolver(schema),
   });
+
+  useEffect(() => {
+    if (!state.needsEmailVerification || !state.email) return;
+    const values = getValues();
+    setPendingSignup({
+      email: state.email,
+      full_name: values.full_name,
+      institution_name: values.institution_name,
+      institution_type: values.institution_type,
+      country: values.country,
+      city: values.city,
+      phone: values.phone,
+    });
+    setStep("verify");
+  }, [state.needsEmailVerification, state.email, getValues]);
+
+  if (step === "verify" && pendingSignup) {
+    return (
+      <SignupEmailVerificationStep
+        category={category}
+        plan={plan}
+        pending={pendingSignup}
+        onBack={() => setStep("register")}
+      />
+    );
+  }
 
   const submitLabel =
     category === "pme" && plan === "pme_free"

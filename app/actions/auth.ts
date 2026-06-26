@@ -11,11 +11,10 @@ import {
   getRedirectPathForRole,
 } from "@/lib/auth";
 import { canAccessPme } from "@/lib/permissions";
-import { createInsforgeServerClient, createInsforgeAdminClient } from "@/lib/insforge-server";
+import { createInsforgeServerClient } from "@/lib/insforge-server";
 import { upsertProfile } from "@/lib/profiles";
 import type { UserRole } from "@/lib/constants";
 import { getUserDisplayName } from "@/lib/user-display";
-import { getPlanPrice } from "@/lib/pricing";
 import {
   checkRateLimit,
   RATE_LIMITS,
@@ -23,6 +22,12 @@ import {
 } from "@/lib/rate-limit";
 import { getClientIpFromHeaders } from "@/lib/request-ip";
 import { forgotPasswordSchema, loginSchema, registerSchema } from "@/lib/validations";
+import { getAuthRedirectUrl, getSignupVerificationMessage } from "@/lib/auth-flow";
+import {
+  provisionInstitutionSignup,
+  provisionPmeSignup,
+} from "@/lib/signup-provision";
+import { z } from "zod";
 import {
   isSignupCategory,
   isValidPlanForCategory,
@@ -33,7 +38,22 @@ export type AuthActionState = {
   success: boolean;
   error?: string;
   message?: string;
+  needsEmailVerification?: boolean;
+  email?: string;
 };
+
+const verifySignupSchema = z.object({
+  email: z.string().email(),
+  code: z.string().min(4, "Code requis").max(8),
+  category: z.enum(["pme", "institution"]),
+  plan: z.string().min(2),
+  full_name: z.string().min(2),
+  institution_name: z.string().optional(),
+  institution_type: z.string().optional(),
+  country: z.string().optional(),
+  city: z.string().optional(),
+  phone: z.string().optional(),
+});
 
 function getAppUrl() {
   return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -163,96 +183,10 @@ export async function signUpAction(
     const institution_type = String(formData.get("institution_type") ?? "");
     const country = String(formData.get("country") ?? "").trim();
     const city = String(formData.get("city") ?? "").trim();
-    const phone = String(formData.get("phone") ?? "").trim() || null;
 
     if (!institution_name || !institution_type || !country || !city) {
       return { success: false, error: "Informations institution incomplètes." };
     }
-
-    const client = createInsforgeServerClient();
-    const { data, error } = await client.auth.signUp({
-      email,
-      password,
-      name: full_name,
-      redirectTo: `${getAppUrl()}/login`,
-    });
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
-    if (data?.requireEmailVerification) {
-      return {
-        success: true,
-        message:
-          "Compte créé. Vérifiez votre email pour activer votre accès institution.",
-      };
-    }
-
-    if (!data?.accessToken || !data?.refreshToken || !data.user) {
-      return {
-        success: true,
-        message: "Compte créé. Connectez-vous pour accéder à votre espace.",
-      };
-    }
-
-    await setAuthCookies(
-      data.accessToken,
-      data.refreshToken,
-      data.user?.emailVerified ?? true
-    );
-    await upsertProfile(
-      {
-        id: data.user.id,
-        full_name,
-        email,
-        role: "INSTITUTION_ADMIN",
-        phone,
-      },
-      data.accessToken
-    );
-
-    const admin = createInsforgeAdminClient();
-    const { data: institution, error: instError } = await admin.database
-      .from("institutions")
-      .insert({
-        name: institution_name,
-        type: institution_type,
-        country,
-        city,
-        email,
-        phone,
-        status: "active",
-      })
-      .select("id")
-      .single();
-
-    if (instError || !institution) {
-      return {
-        success: false,
-        error: instError?.message ?? "Impossible de créer l'institution.",
-      };
-    }
-
-    const { error: linkError } = await admin.database.from("institution_users").insert({
-      institution_id: institution.id,
-      user_id: data.user.id,
-      role: "INSTITUTION_ADMIN",
-    });
-
-    if (linkError) {
-      return { success: false, error: linkError.message };
-    }
-
-    const monthlyAmount = getPlanPrice(plan);
-    await admin.database.from("subscriptions").insert({
-      institution_id: institution.id,
-      plan_name: plan,
-      status: "active",
-      amount: monthlyAmount,
-    });
-
-    redirect("/institution/dashboard");
   }
 
   const client = createInsforgeServerClient();
@@ -260,7 +194,7 @@ export async function signUpAction(
     email,
     password,
     name: full_name,
-    redirectTo: `${getAppUrl()}/login`,
+    redirectTo: getAuthRedirectUrl("/login"),
   });
 
   if (error) {
@@ -270,34 +204,188 @@ export async function signUpAction(
   if (data?.requireEmailVerification) {
     return {
       success: true,
-      message:
-        "Compte créé. Vérifiez votre email pour activer votre accès, puis connectez-vous.",
+      needsEmailVerification: true,
+      email,
+      message: getSignupVerificationMessage(),
     };
   }
 
   if (!data?.accessToken || !data?.refreshToken || !data.user) {
     return {
-      success: true,
-      message: "Compte créé. Vous pouvez maintenant vous connecter.",
+      success: false,
+      error: "Compte créé mais session introuvable. Connectez-vous avec votre mot de passe.",
     };
   }
 
   await setAuthCookies(
     data.accessToken,
     data.refreshToken,
-    data.user?.emailVerified ?? true
-  );
-  await upsertProfile(
-    {
-      id: data.user.id,
-      full_name,
-      email,
-      role: "PME_OWNER",
-    },
-    data.accessToken
+    data.user.emailVerified ?? true
   );
 
-  redirect(await getPmeRedirectPath(data.user.id));
+  try {
+    if (category === "institution") {
+      await provisionInstitutionSignup({
+        userId: data.user.id,
+        accessToken: data.accessToken,
+        full_name,
+        email,
+        phone: String(formData.get("phone") ?? "").trim() || null,
+        institution_name: String(formData.get("institution_name") ?? "").trim(),
+        institution_type: String(formData.get("institution_type") ?? ""),
+        country: String(formData.get("country") ?? "").trim(),
+        city: String(formData.get("city") ?? "").trim(),
+        plan,
+      });
+      redirect("/institution/dashboard");
+    }
+
+    await provisionPmeSignup({
+      userId: data.user.id,
+      accessToken: data.accessToken,
+      full_name,
+      email,
+    });
+    redirect(await getPmeRedirectPath(data.user.id));
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : "Finalisation du compte impossible.",
+    };
+  }
+}
+
+export async function verifySignupEmailAction(
+  _prev: AuthActionState,
+  formData: FormData
+): Promise<AuthActionState> {
+  const ip = await getClientIpFromHeaders();
+  const rate = checkRateLimit(
+    `auth:verify-signup:${ip}`,
+    RATE_LIMITS.forgotPassword.limit,
+    RATE_LIMITS.forgotPassword.windowMs
+  );
+  if (!rate.success) {
+    return { success: false, error: rateLimitErrorMessage(rate.retryAfter) };
+  }
+
+  const parsed = verifySignupSchema.safeParse({
+    email: formData.get("email"),
+    code: formData.get("code"),
+    category: formData.get("category"),
+    plan: formData.get("plan"),
+    full_name: formData.get("full_name"),
+    institution_name: formData.get("institution_name") || undefined,
+    institution_type: formData.get("institution_type") || undefined,
+    country: formData.get("country") || undefined,
+    city: formData.get("city") || undefined,
+    phone: formData.get("phone") || undefined,
+  });
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Données invalides.",
+    };
+  }
+
+  const data = parsed.data;
+
+  if (
+    data.category === "institution" &&
+    (!data.institution_name || !data.institution_type || !data.country || !data.city)
+  ) {
+    return { success: false, error: "Informations institution incomplètes." };
+  }
+
+  if (!isValidPlanForCategory(data.category, data.plan)) {
+    return { success: false, error: "Forfait invalide." };
+  }
+
+  const client = createInsforgeServerClient();
+  const { data: verifyData, error } = await client.auth.verifyEmail({
+    email: data.email,
+    otp: data.code.trim(),
+  });
+
+  if (error || !verifyData?.accessToken || !verifyData?.refreshToken || !verifyData.user) {
+    return {
+      success: false,
+      error: error?.message ?? "Code invalide ou expiré. Renvoyez un nouveau code.",
+    };
+  }
+
+  await setAuthCookies(
+    verifyData.accessToken,
+    verifyData.refreshToken,
+    true
+  );
+
+  try {
+    if (data.category === "institution") {
+      await provisionInstitutionSignup({
+        userId: verifyData.user.id,
+        accessToken: verifyData.accessToken,
+        full_name: data.full_name,
+        email: data.email,
+        phone: data.phone?.trim() || null,
+        institution_name: data.institution_name!,
+        institution_type: data.institution_type!,
+        country: data.country!,
+        city: data.city!,
+        plan: data.plan,
+      });
+      redirect("/institution/dashboard");
+    }
+
+    await provisionPmeSignup({
+      userId: verifyData.user.id,
+      accessToken: verifyData.accessToken,
+      full_name: data.full_name,
+      email: data.email,
+    });
+    redirect(await getPmeRedirectPath(verifyData.user.id));
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : "Finalisation du compte impossible.",
+    };
+  }
+}
+
+export async function resendSignupVerificationAction(
+  _prev: AuthActionState,
+  formData: FormData
+): Promise<AuthActionState> {
+  const ip = await getClientIpFromHeaders();
+  const rate = checkRateLimit(
+    `auth:verify-resend:${ip}`,
+    RATE_LIMITS.forgotPassword.limit,
+    RATE_LIMITS.forgotPassword.windowMs
+  );
+  if (!rate.success) {
+    return { success: false, error: rateLimitErrorMessage(rate.retryAfter) };
+  }
+
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email) {
+    return { success: false, error: "Email requis." };
+  }
+
+  const client = createInsforgeServerClient();
+  const { error } = await client.auth.resendVerificationEmail({
+    email,
+    redirectTo: getAuthRedirectUrl("/login"),
+  });
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return {
+    success: true,
+    message: "Nouveau code envoyé. Vérifiez votre boîte mail (et les spams).",
+  };
 }
 
 export async function signOutAction() {
@@ -382,7 +470,7 @@ export async function resendVerificationAction(
 
   const { error } = await client.auth.resendVerificationEmail({
     email,
-    redirectTo: `${getAppUrl()}/login`,
+    redirectTo: getAuthRedirectUrl("/login"),
   });
 
   if (error) {
@@ -391,8 +479,56 @@ export async function resendVerificationAction(
 
   return {
     success: true,
-    message: "Email de vérification renvoyé. Consultez votre boîte mail.",
+    message: "Nouveau code envoyé. Vérifiez votre boîte mail (et les spams).",
   };
+}
+
+export async function verifyEmailCodeAction(
+  _prev: AuthActionState,
+  formData: FormData
+): Promise<AuthActionState> {
+  const ip = await getClientIpFromHeaders();
+  const rate = checkRateLimit(
+    `auth:verify-code:${ip}`,
+    RATE_LIMITS.forgotPassword.limit,
+    RATE_LIMITS.forgotPassword.windowMs
+  );
+  if (!rate.success) {
+    return { success: false, error: rateLimitErrorMessage(rate.retryAfter) };
+  }
+
+  const email = String(formData.get("email") ?? "").trim();
+  const code = String(formData.get("code") ?? "").trim();
+
+  if (!email || !code) {
+    return { success: false, error: "Email et code requis." };
+  }
+
+  const client = createInsforgeServerClient();
+  const { data, error } = await client.auth.verifyEmail({ email, otp: code });
+
+  if (error || !data?.accessToken || !data?.refreshToken) {
+    return {
+      success: false,
+      error: error?.message ?? "Code invalide ou expiré.",
+    };
+  }
+
+  await setAuthCookies(data.accessToken, data.refreshToken, true);
+
+  const profileClient = createInsforgeServerClient(data.accessToken);
+  const { data: profile } = await profileClient.database
+    .from("profiles")
+    .select("role")
+    .eq("id", data.user.id)
+    .maybeSingle();
+
+  const role = (profile?.role as UserRole | undefined) ?? "PME_OWNER";
+  const redirectPath = canAccessPme(role)
+    ? await getPmeRedirectPath(data.user.id)
+    : getRedirectPathForRole(role);
+
+  redirect(redirectPath);
 }
 
 export async function checkVerificationAction(
@@ -412,7 +548,7 @@ export async function checkVerificationAction(
 
   return {
     success: false,
-    error: "Email non encore vérifié. Cliquez sur le lien reçu par mail.",
+    error: "Email non encore vérifié. Saisissez le code reçu par email.",
   };
 }
 

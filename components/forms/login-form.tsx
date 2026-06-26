@@ -98,6 +98,12 @@ export function LoginForm() {
             S&apos;inscrire
           </Link>
         </p>
+        <p>
+          Code de vérification ?{" "}
+          <Link href="/confirm-email" className="font-semibold text-[#0077B6] hover:underline">
+            Confirmer mon email
+          </Link>
+        </p>
       </div>
     </div>
   );
