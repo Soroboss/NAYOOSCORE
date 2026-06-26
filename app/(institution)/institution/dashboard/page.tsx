@@ -1,18 +1,33 @@
 import { requireInstitution } from "@/app/actions/institution";
 import { StatCard } from "@/components/pme/stat-card";
 import { CompaniesTable } from "@/components/institution/companies-table";
+import { PageHeader } from "@/components/dashboard/page-header";
+import { ScoreDistributionChart } from "@/components/dashboard/score-distribution-chart";
+import { UsageMeter } from "@/components/dashboard/usage-meter";
 import {
   getInstitutionCompanies,
+  getInstitutionScoreDistribution,
   getInstitutionStats,
+  getInstitutionUsage,
 } from "@/lib/institution-context";
-import { BarChart3, Briefcase, ClipboardList, HandCoins } from "lucide-react";
+import { formatXof } from "@/lib/format";
+import {
+  BarChart3,
+  Briefcase,
+  ClipboardList,
+  HandCoins,
+  Percent,
+  Target,
+} from "lucide-react";
 import Link from "next/link";
 
 export default async function InstitutionDashboardPage() {
   const { institution } = await requireInstitution();
-  const [stats, companies] = await Promise.all([
+  const [stats, companies, distribution, usage] = await Promise.all([
     getInstitutionStats(institution.id),
     getInstitutionCompanies(institution.id),
+    getInstitutionScoreDistribution(institution.id),
+    getInstitutionUsage(institution.id),
   ]);
 
   const topCompanies = [...companies]
@@ -21,15 +36,14 @@ export default async function InstitutionDashboardPage() {
     .slice(0, 5);
 
   return (
-    <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold text-[#0B1D2A]">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Vue d&apos;ensemble — {institution.name}
-        </p>
-      </div>
+    <div className="space-y-8 p-6">
+      <PageHeader
+        badge={usage.planName ?? "Sans abonnement"}
+        title="Tableau de bord"
+        description={`Pilotage du portefeuille PME — ${institution.name}`}
+      />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         <StatCard
           title="PME accompagnées"
           value={String(stats.companiesCount)}
@@ -39,6 +53,18 @@ export default async function InstitutionDashboardPage() {
           title="Score moyen"
           value={`${stats.averageScore}/100`}
           icon={BarChart3}
+        />
+        <StatCard
+          title="Couverture score"
+          value={`${stats.coveragePercent}%`}
+          hint={`${stats.scoredCount}/${stats.companiesCount} scorées`}
+          icon={Percent}
+        />
+        <StatCard
+          title="PME finançables"
+          value={String(stats.fundableCount)}
+          hint="Score ≥ 60"
+          icon={Target}
         />
         <StatCard
           title="Programmes actifs"
@@ -53,12 +79,47 @@ export default async function InstitutionDashboardPage() {
         />
       </div>
 
+      <div className="grid gap-6 lg:grid-cols-3">
+        <section className="rounded-xl border bg-white p-5 shadow-sm lg:col-span-1">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="font-semibold text-[#0B1D2A]">Quota du plan</h2>
+            <Link
+              href="/institution/billing"
+              className="text-xs text-[#0077B6] hover:underline"
+            >
+              Détails →
+            </Link>
+          </div>
+          {usage.planName ? (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Plan <strong className="text-[#0B1D2A]">{usage.planName}</strong> —{" "}
+                {formatXof(usage.monthlyAmount)}/mois
+              </p>
+              <UsageMeter label="PME" {...usage.limits.pme} />
+              <UsageMeter label="Programmes" {...usage.limits.programs} />
+              <UsageMeter label="Utilisateurs" {...usage.limits.users} />
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Aucun abonnement actif. Contactez l&apos;administrateur Nayooscore
+              pour activer votre plan.
+            </p>
+          )}
+        </section>
+
+        <div className="lg:col-span-2">
+          <ScoreDistributionChart
+            buckets={distribution}
+            totalScored={stats.scoredCount}
+          />
+        </div>
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-[#0B1D2A]">
-              PME récentes
-            </h2>
+            <h2 className="text-lg font-semibold text-[#0B1D2A]">PME récentes</h2>
             <Link
               href="/institution/companies"
               className="text-sm text-[#0077B6] hover:underline"
@@ -71,9 +132,7 @@ export default async function InstitutionDashboardPage() {
 
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-[#0B1D2A]">
-              Meilleurs scores
-            </h2>
+            <h2 className="text-lg font-semibold text-[#0B1D2A]">Meilleurs scores</h2>
             <Link
               href="/institution/scoring"
               className="text-sm text-[#0077B6] hover:underline"
@@ -81,7 +140,7 @@ export default async function InstitutionDashboardPage() {
               Classement complet
             </Link>
           </div>
-          <div className="rounded-xl border bg-white">
+          <div className="rounded-xl border bg-white shadow-sm">
             {topCompanies.length === 0 ? (
               <p className="p-6 text-sm text-muted-foreground">
                 Aucun score calculé pour le moment.
@@ -108,6 +167,23 @@ export default async function InstitutionDashboardPage() {
             )}
           </div>
         </section>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        {[
+          { href: "/institution/funding-decisions", label: "Financement", icon: HandCoins },
+          { href: "/institution/reports", label: "Rapports", icon: BarChart3 },
+          { href: "/institution/companies", label: "Entreprises", icon: Briefcase },
+        ].map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="flex items-center gap-3 rounded-xl border bg-white p-4 text-sm font-medium text-[#0077B6] shadow-sm transition hover:border-[#00BFA6]/40"
+          >
+            <item.icon className="size-4" />
+            {item.label} →
+          </Link>
+        ))}
       </div>
     </div>
   );

@@ -90,6 +90,12 @@ export const institutionNavGroups: NavGroup[] = [
       { title: "Rapports", href: "/institution/reports", icon: FileText },
     ],
   },
+  {
+    label: "Compte",
+    items: [
+      { title: "Abonnement", href: "/institution/billing", icon: CreditCard },
+    ],
+  },
 ];
 
 export const pmeNavGroups: NavGroup[] = [

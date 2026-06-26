@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAuth } from "@/app/actions/auth";
 import { getAuthedServerClient } from "@/lib/insforge-server";
+import { getPlanPrice } from "@/lib/pricing";
 import { canAccessAdmin } from "@/lib/permissions";
 
 export type AdminActionState = { success: boolean; error?: string; message?: string };
@@ -58,4 +59,61 @@ export async function createInstitutionAction(
   revalidatePath("/admin/institutions");
   revalidatePath("/admin/dashboard");
   return { success: true, message: "Institution créée." };
+}
+
+const subscriptionSchema = z.object({
+  institution_id: z.string().uuid(),
+  plan_name: z.enum(["starter", "pro", "enterprise"]),
+  amount: z.coerce.number().positive().optional(),
+});
+
+export async function assignSubscriptionAction(
+  _prev: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
+  await requireAdmin();
+
+  const amountRaw = formData.get("amount");
+  const parsed = subscriptionSchema.safeParse({
+    institution_id: formData.get("institution_id"),
+    plan_name: formData.get("plan_name"),
+    amount: amountRaw ? Number(amountRaw) : undefined,
+  });
+
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Données invalides." };
+  }
+
+  const client = await getAuthedServerClient();
+  const { institution_id, plan_name, amount } = parsed.data;
+
+  const { data: existing } = await client.database
+    .from("subscriptions")
+    .select("id")
+    .eq("institution_id", institution_id)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (existing) {
+    return {
+      success: false,
+      error: "Cette institution a déjà un abonnement actif. Désactivez-le d'abord.",
+    };
+  }
+
+  const monthlyAmount = amount ?? getPlanPrice(plan_name);
+
+  const { error } = await client.database.from("subscriptions").insert({
+    institution_id,
+    plan_name,
+    status: "active",
+    amount: monthlyAmount,
+  });
+
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath("/admin/subscriptions");
+  revalidatePath("/admin/dashboard");
+  revalidatePath("/admin/institutions");
+  return { success: true, message: "Abonnement activé avec succès." };
 }

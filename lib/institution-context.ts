@@ -1,8 +1,16 @@
 import { getAccessToken } from "@/lib/auth-cookies";
 import { createInsforgeServerClient } from "@/lib/insforge-server";
+import {
+  getInstitutionPlan,
+  getPlanPrice,
+  isWithinLimit,
+  type PlanId,
+} from "@/lib/pricing";
 import type { Company } from "@/types/company";
 import type { Institution } from "@/types/institution";
 import type { Program } from "@/types/program";
+import type { Subscription } from "@/types/subscription";
+import { SCORE_THRESHOLDS } from "@/lib/constants";
 
 function relationName(value: unknown): string | null {
   if (!value) return null;
@@ -26,6 +34,28 @@ export type InstitutionStats = {
   programsCount: number;
   averageScore: number;
   pendingFundingCount: number;
+  scoredCount: number;
+  fundableCount: number;
+  coveragePercent: number;
+  usersCount: number;
+};
+
+export type ScoreBucket = {
+  label: string;
+  count: number;
+  color: string;
+};
+
+export type InstitutionUsage = {
+  subscription: Subscription | null;
+  planId: PlanId | null;
+  planName: string | null;
+  monthlyAmount: number;
+  limits: {
+    pme: { current: number; max: number | null; percent: number; ok: boolean };
+    programs: { current: number; max: number | null; percent: number; ok: boolean };
+    users: { current: number; max: number | null; percent: number; ok: boolean };
+  };
 };
 
 export type FundingRequestRow = {
@@ -80,12 +110,16 @@ export async function getInstitutionStats(
       programsCount: 0,
       averageScore: 0,
       pendingFundingCount: 0,
+      scoredCount: 0,
+      fundableCount: 0,
+      coveragePercent: 0,
+      usersCount: 0,
     };
   }
 
   const client = createInsforgeServerClient(token);
 
-  const [{ data: companies }, { data: programs }, { data: funding }] =
+  const [{ data: companies }, { data: programs }, { data: funding }, { data: members }] =
     await Promise.all([
       client.database
         .from("companies")
@@ -101,10 +135,16 @@ export async function getInstitutionStats(
         .select("id")
         .eq("institution_id", institutionId)
         .in("status", ["submitted", "pending", "under_review"]),
+      client.database
+        .from("institution_users")
+        .select("id")
+        .eq("institution_id", institutionId),
     ]);
 
   const companyIds = (companies ?? []).map((c) => c.id);
   let averageScore = 0;
+  let scoredCount = 0;
+  let fundableCount = 0;
 
   if (companyIds.length > 0) {
     const { data: scores } = await client.database
@@ -120,17 +160,29 @@ export async function getInstitutionStats(
       }
     }
     const values = [...latestByCompany.values()];
+    scoredCount = values.length;
+    fundableCount = values.filter(
+      (s) => s >= SCORE_THRESHOLDS.IN_PROGRESS.min
+    ).length;
     averageScore =
       values.length > 0
         ? Math.round(values.reduce((a, b) => a + b, 0) / values.length)
         : 0;
   }
 
+  const companiesCount = companyIds.length;
+  const coveragePercent =
+    companiesCount > 0 ? Math.round((scoredCount / companiesCount) * 100) : 0;
+
   return {
-    companiesCount: companyIds.length,
+    companiesCount,
     programsCount: (programs ?? []).length,
     averageScore,
     pendingFundingCount: (funding ?? []).length,
+    scoredCount,
+    fundableCount,
+    coveragePercent,
+    usersCount: (members ?? []).length,
   };
 }
 
@@ -305,4 +357,105 @@ export async function getInstitutionScoringLeaderboard(
   return [...companies].sort(
     (a, b) => (b.global_score ?? 0) - (a.global_score ?? 0)
   );
+}
+
+export async function getInstitutionScoreDistribution(
+  institutionId: string,
+  accessToken?: string
+): Promise<ScoreBucket[]> {
+  const companies = await getInstitutionCompanies(institutionId, accessToken);
+  const buckets: ScoreBucket[] = [
+    { label: "Non prêt (0-39)", count: 0, color: "#ef4444" },
+    { label: "À structurer (40-59)", count: 0, color: "#f59e0b" },
+    { label: "En progression (60-74)", count: 0, color: "#0077B6" },
+    { label: "Pré-finançable (75-84)", count: 0, color: "#00BFA6" },
+    { label: "Finançable (85+)", count: 0, color: "#059669" },
+  ];
+
+  for (const c of companies) {
+    const score = c.global_score;
+    if (score == null) continue;
+    if (score < 40) buckets[0].count++;
+    else if (score < 60) buckets[1].count++;
+    else if (score < 75) buckets[2].count++;
+    else if (score < 85) buckets[3].count++;
+    else buckets[4].count++;
+  }
+
+  return buckets;
+}
+
+export async function getInstitutionSubscription(
+  institutionId: string,
+  accessToken?: string
+): Promise<Subscription | null> {
+  const token = accessToken ?? (await getAccessToken());
+  if (!token) return null;
+
+  const client = createInsforgeServerClient(token);
+  const { data } = await client.database
+    .from("subscriptions")
+    .select("*")
+    .eq("institution_id", institutionId)
+    .eq("status", "active")
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    institution_id: data.institution_id,
+    plan_name: data.plan_name,
+    status: data.status,
+    amount: data.amount != null ? Number(data.amount) : null,
+    started_at: data.started_at,
+    ends_at: data.ends_at,
+  };
+}
+
+export async function getInstitutionUsage(
+  institutionId: string,
+  accessToken?: string
+): Promise<InstitutionUsage> {
+  const [stats, subscription] = await Promise.all([
+    getInstitutionStats(institutionId, accessToken),
+    getInstitutionSubscription(institutionId, accessToken),
+  ]);
+
+  const plan = subscription
+    ? getInstitutionPlan(subscription.plan_name)
+    : null;
+  const planId = (subscription?.plan_name as PlanId) ?? null;
+
+  const pmeLimit = plan?.limits.maxPme ?? null;
+  const programsLimit = plan?.limits.maxPrograms ?? null;
+  const usersLimit = plan?.limits.maxUsers ?? null;
+
+  return {
+    subscription,
+    planId,
+    planName: plan?.name ?? null,
+    monthlyAmount: subscription
+      ? (subscription.amount ?? getPlanPrice(subscription.plan_name))
+      : 0,
+    limits: {
+      pme: {
+        current: stats.companiesCount,
+        max: pmeLimit,
+        ...isWithinLimit(stats.companiesCount, pmeLimit),
+      },
+      programs: {
+        current: stats.programsCount,
+        max: programsLimit,
+        ...isWithinLimit(stats.programsCount, programsLimit),
+      },
+      users: {
+        current: stats.usersCount,
+        max: usersLimit,
+        ...isWithinLimit(stats.usersCount, usersLimit),
+      },
+    },
+  };
 }
